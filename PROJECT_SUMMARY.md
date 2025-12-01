@@ -1,0 +1,456 @@
+# PIXELLAB - Plataforma Oficial de Gestao Farmaceutica
+## Resumo Completo do Projeto
+
+---
+
+## 1. VISAO GERAL
+
+**Projeto**: PIXELLAB - Plataforma Oficial de Gestao Farmaceutica
+**Tagline**: Health & Data Intelligence
+**Proposito**: Plataforma web que substitui workflows manuais em Excel para gestao de medicamentos em municipalidade de saude (Campo Alegre)
+**Usuarios**: Farmaceuticos, operadores de estoque, administradores de saude
+**Duas Vertentes**:
+- **Gestao de Estoque**: Gestao de pedidos de medicamentos com calculo automatico de necessidades
+- **PMS (Programa Medicamento Social)**: Gestao de medicamentos para pacientes com condicoes especiais
+
+---
+
+## 2. STACK TÉCNICO COMPLETO
+
+### Frontend
+- **Framework**: React 18 + TypeScript + Vite
+- **Roteamento**: wouter (lightweight)
+- **UI Components**: shadcn/ui (Radix UI + Tailwind CSS)
+- **Form Management**: react-hook-form + Zod validation
+- **State Management**: TanStack Query (React Query) v5
+- **HTTP Client**: Custom `apiRequest` wrapper
+- **Icons**: lucide-react + react-icons/si
+- **Styling**: Tailwind CSS com PostCSS
+
+### Backend
+- **Runtime**: Node.js + Express.js (ESM modules)
+- **ORM**: Drizzle ORM com Zod schemas
+- **Database**: PostgreSQL (Neon serverless)
+- **Authentication**: Replit Auth (OIDC) + Passport.js
+- **Session**: connect-pg-simple (PostgreSQL-backed)
+- **File Upload**: multer + xlsx parsing
+- **Middleware**: Express built-in + custom auth middleware
+
+### DevOps
+- **Build**: esbuild (backend), Vite (frontend)
+- **Type Checking**: TypeScript
+- **Vite Plugins**: 
+  - @replit/vite-plugin-runtime-error-modal
+  - @replit/vite-plugin-dev-banner
+  - @replit/vite-plugin-cartographer
+- **Environment**: Nix (Replit)
+
+---
+
+## 3. ARQUITETURA DO SISTEMA
+
+### 3.1 Frontend Structure
+```
+client/src/
+├── pages/           # Página principal (router)
+├── components/
+│   ├── excepcionais/
+│   │   ├── dispensar-excepcionais.tsx (wrapper com 2 etapas)
+│   │   ├── selecionar-paciente.tsx (etapa 1: busca paciente)
+│   │   └── dispensar-medicamentos.tsx (etapa 2: medicamentos)
+│   ├── app-sidebar.tsx
+│   ├── ui/ (shadcn components)
+├── lib/
+│   └── queryClient.ts (React Query setup + apiRequest wrapper)
+├── hooks/
+│   └── use-toast.ts
+└── App.tsx (router principal)
+```
+
+### 3.2 Backend Structure
+```
+server/
+├── routes.ts        # Todos os endpoints REST
+├── storage.ts       # Interface IStorage (CRUD abstrata)
+├── vite.ts          # Dev server Vite
+└── middleware/
+    └── auth.ts      # Middleware de autenticação Replit OIDC
+
+shared/
+├── schema.ts        # Drizzle tables + Zod schemas
+└── types.ts         # Types exported from schemas
+```
+
+### 3.3 Database Schema
+
+**Tabelas Principais:**
+- `users` - Usuários (id, email, firstName, lastName, role: admin|operator)
+- `units` - Unidades de saúde (id, name, type)
+- `suppliers` - Fornecedores (id, name, contact, priority)
+- `items` - Medicamentos PIXELLAB (id, code, name, presentation, currentStock, monthlyConsumption, minStockMonths, etc.)
+- `orders` - Pedidos (id, supplierId, status: draft|generated|sent|authorized|committed|received, horizonMonths)
+- `orderItems` - Itens do pedido (orderId, itemId, quantity, etc.)
+- `importHistory` - Auditoria de imports
+- `auditLogs` - Log de mudanças (userId, action, entityId, changes)
+
+**Tabelas SESI (Pacientes Excepcionais):**
+- `sesiPatients` - Pacientes excepcionais (id, name, cpf, dateOfBirth, etc.)
+- `sesiStock` - Estoque independente SESI (id, itemId, batchNumber, expiryDate, quantity)
+- `sesiDispensations` - Dispensações (id, patientId, medicationId, quantidade, data, usuarioResponsavel)
+
+---
+
+## 4. FLUXOS PRINCIPAIS
+
+### 4.1 Fluxo Gestao de Estoque (Procurement)
+1. **Import**: Upload Excel/CSV com dados de medicamentos
+2. **Review**: Visualizar dados importados, corrigir manualmente
+3. **Planning**: Selecionar horizon (3/6/9/12 meses), calcular necessidades
+4. **Generate Orders**: Agrupar por fornecedor, criar pedidos (draft)
+5. **Manage Orders**: Mudar status (generated→sent→authorized→committed→received)
+
+### 4.2 Fluxo SESI (Pacientes Excepcionais)
+1. **Patient Management**: CRUD pacientes, visualizar histórico
+2. **Dispensar**:
+   - Etapa 1: Selecionar paciente (busca por nome/CPF)
+   - Etapa 2: Adicionar medicamentos (quantidades, lote, validade)
+   - Submit: Registra dispensação e deduz estoque FIFO
+3. **Stock Management**: Importar estoque via invoice, gerenciar lotes
+4. **Dashboard**: KPIs de pacientes, medicamentos críticos, trends
+
+---
+
+## 5. API ENDPOINTS
+
+### Autenticação
+- `GET /api/auth/status` - Check if logged in (public)
+- `GET /auth/login` - Replit OAuth redirect
+- `POST /auth/logout` - Logout
+
+### Estoque - Items
+- `GET /api/items` - List all medications
+- `POST /api/items` - Create medication
+- `PATCH /api/items/:id` - Update medication
+- `DELETE /api/items/:id` - Delete medication
+
+### Estoque - Orders
+- `GET /api/orders` - List all orders
+- `POST /api/orders` - Create order
+- `PATCH /api/orders/:id` - Update order status
+- `POST /api/orders/:id/items` - Add item to order
+
+### Cadastros - Units
+- `GET /api/units` - List all units
+- `POST /api/units` - Create unit
+- `PATCH /api/units/:id` - Update unit
+
+### Cadastros - Suppliers
+- `GET /api/suppliers` - List all suppliers
+- `POST /api/suppliers` - Create supplier
+- `PATCH /api/suppliers/:id` - Update supplier
+
+### Estoque - Import
+- `POST /api/import` - Upload Excel/CSV file
+
+### SESI - Patients
+- `GET /api/sesi/pacientes` - List all exceptional patients
+- `POST /api/sesi/pacientes` - Create patient
+- `PATCH /api/sesi/pacientes/:id` - Update patient
+
+### SESI - Stock
+- `GET /api/sesi/estoque` - List SESI stock
+- `POST /api/sesi/estoque` - Import batch (estoque excepcional)
+
+### SESI - Medications (SESI-specific search)
+- `GET /api/sesi/medicamentos` - Search medications in SESI stock ONLY
+
+### SESI - Dispensations
+- `POST /api/sesi/dispensacoes` - Register medication dispensation
+  - Payload: `{ pacienteId, medicamentos: [{medicationId, quantity, batchNumber?, expiryDate?}] }`
+  - Usa FIFO interno para deduzir estoque
+
+---
+
+## 6. PADRÕES DE DESENVOLVIMENTO
+
+### 6.1 Frontend Patterns
+
+**Forms:**
+```typescript
+// 1. Criar Zod schema
+const schema = z.object({ name: z.string() });
+type FormData = z.infer<typeof schema>;
+
+// 2. useForm com zodResolver
+const form = useForm<FormData>({
+  resolver: zodResolver(schema),
+  defaultValues: { name: "" }
+});
+
+// 3. Usar FormField do shadcn
+<FormField control={form.control} name="name" render={...} />
+
+// 4. onSubmit com validação automática
+const onSubmit = (data: FormData) => { /* ... */ };
+<form onSubmit={form.handleSubmit(onSubmit)} />
+```
+
+**Queries & Mutations:**
+```typescript
+// Query
+const { data, isLoading } = useQuery({
+  queryKey: ["/api/endpoint"],
+  queryFn: () => apiRequest("GET", "/api/endpoint").then(r => r.json())
+});
+
+// Mutation com invalidação
+const mutation = useMutation({
+  mutationFn: (data) => apiRequest("POST", "/api/endpoint", data),
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/endpoint"] });
+    toast({ title: "Sucesso" });
+  }
+});
+```
+
+**Arrays Dinâmicos:**
+```typescript
+// useFieldArray para arrays de items
+const { fields, append, remove } = useFieldArray({
+  control: form.control,
+  name: "items"
+});
+```
+
+### 6.2 Backend Patterns
+
+**Routes:**
+```typescript
+// GET
+router.get("/api/resource", isAuthenticated, async (req, res) => {
+  const result = await storage.getResource();
+  res.json(result);
+});
+
+// POST com validação Zod
+router.post("/api/resource", isAuthenticated, async (req, res) => {
+  const data = insertResourceSchema.parse(req.body);
+  const result = await storage.createResource(data);
+  res.json(result);
+});
+```
+
+**Storage Interface:**
+```typescript
+interface IStorage {
+  // CRUD methods
+  getResource(): Promise<Resource[]>;
+  createResource(data: InsertResource): Promise<Resource>;
+  updateResource(id: string, data: Partial<Resource>): Promise<Resource>;
+  deleteResource(id: string): Promise<void>;
+}
+```
+
+### 6.3 Data Validation
+
+**Todos os inputs SEMPRE validados com Zod antes de DB:**
+```typescript
+const data = insertSchema.parse(req.body);
+// Só após validação passa para storage
+await storage.create(data);
+```
+
+### 6.4 Naming Conventions
+
+**Frontend Components:**
+- PascalCase: `DispenserMedicamentos`
+- Paths: `/excepcionais/dispensar` (kebab-case)
+
+**Backend:**
+- API routes: `/api/resource` (kebab-case)
+- Functions: `createResource()` (camelCase)
+- Database: `snake_case` (Drizzle auto-converts)
+
+**Database:**
+- Tables: `sesiPatients` (Drizzle) → `sesi_patients` (SQL)
+- Columns: `dateOfBirth` (Drizzle) → `date_of_birth` (SQL)
+
+---
+
+## 7. ESTADO ATUAL (Último Commit)
+
+### ✅ Implementado
+- **Estoque Core**: Items, Orders, Units, Suppliers, Import
+- **Authentication**: Replit OIDC login/logout
+- **SESI Module Completo**:
+  - Gestão de pacientes excepcionais (CRUD)
+  - Busca de medicamentos (SESI stock only)
+  - Fluxo de dispensação (2 etapas):
+    - Etapa 1: SelecionarPaciente (busca, seleção)
+    - Etapa 2: DispenserMedicamentos (useFieldArray, add/remove, submit)
+  - FIFO stock deduction (automático via `deductSesiStock()`)
+  - Estoque excepcional independente
+- **UI/UX**:
+  - Dashboard com KPIs
+  - Sidebar persistente com navegação
+  - Forms com validação Zod
+  - Toast notifications
+  - Loading states com React Query
+
+### ❌ Removido (Cleanup)
+- Yellow alert bugado "Selecione um paciente" (removed from dispensar)
+- Componente antigo "Casos/Encaminhamentos" separado (merged into patient page)
+
+### 🔄 Recente
+- Refactored dispensar para 2-step flow com useFieldArray
+- Simplified patient selection UI (matches design reference)
+- Clean medication form com FIFO backend integration
+
+---
+
+## 8. REGRAS CRÍTICAS PARA DESENVOLVIMENTO
+
+### 8.1 Database Safety
+- **NUNCA mudar tipos de ID primary key** (serial ↔ varchar causa destructão)
+- Usar `npm run db:push` para sync schema
+- Se der erro: `npm run db:push --force`
+
+### 8.2 Frontend Rules
+- **NUNCA importar React explicitamente** (Vite auto-injecta)
+- **SEMPRE usar `@` paths** para imports (`@/components`, `@/lib`)
+- **SEMPRE adicionar `data-testid`** a elementos interativos
+- **NUNCA usar `process.env`**, usar `import.meta.env.VITE_*`
+- **NUNCA editar** `vite.config.ts`, `vite-server.ts`, `drizzle.config.ts`
+- **NUNCA editar** `package.json` (usar packager_tool para dependências)
+
+### 8.3 Validação & Zod
+- **Sempre validar inputs com Zod** antes de passá-los ao storage/DB
+- **Usar createInsertSchema** do drizzle-zod
+- **Sempre usar resolver: zodResolver** em forms
+
+### 8.4 Query & Mutations
+- **TanStack Query v5**: object-form only (`useQuery({ queryKey: [] })`)
+- **SEMPRE invalidar cache** após mutations: `queryClient.invalidateQueries({ queryKey: [...] })`
+- **useFieldArray** para arrays dinâmicos em forms
+
+### 8.5 Estilo & Design
+- **Usar shadcn components** em vez de criar custom
+- **Layout**: Sidebar (260px) + main content
+- **Cores**: Via Tailwind + custom CSS variables em `index.css`
+- **Dark mode**: Auto via `.dark` class no `documentElement`
+
+---
+
+## 9. FLUXO DE DISPENSAÇÃO SESI (Detalhado)
+
+### Request Flow
+```
+Frontend: POST /api/sesi/dispensacoes
+{
+  "pacienteId": "uuid",
+  "medicamentos": [
+    {
+      "medicationId": "uuid",
+      "quantity": 10,
+      "batchNumber": "LOTE123",
+      "expiryDate": "2025-12-31"
+    }
+  ]
+}
+```
+
+### Backend Processing
+1. **Validação**: Zod schema parse
+2. **FIFO Deduction**: 
+   - Busca lotes mais antigos primeiro (by data_validade)
+   - Deduz quantidade do estoque SESI
+   - Registra auditLog com type: `dispensacao_excepcional`
+3. **Database Save**: 
+   - Insert em `sesiDispensations`
+   - Update em `sesiStock` (quantidade)
+   - Insert em `auditLogs`
+4. **Response**: JSON com resultado
+
+### Key Endpoint Logic
+```typescript
+POST /api/sesi/dispensacoes
+- Validar payload
+- Chamar deductSesiStock(itemId, quantidade)
+  - Query sesiStock WHERE itemId ORDER BY data_validade ASC
+  - Deduzir quantidade FIFO
+  - Validar se há estoque suficiente
+- Registrar em auditLogs
+- Responder JSON
+```
+
+---
+
+## 10. PRÓXIMAS ETAPAS SUGERIDAS
+
+1. **Melhorias SESI**:
+   - Dashboard com KPIs (pacientes, medicamentos críticos)
+   - Relatórios de dispensação (CSV, PDF)
+   - Histórico de dispensações por paciente
+
+2. **Integracao Estoque - PMS**:
+   - Possibilidade de usar estoque principal como fallback para PMS
+   - Sincronização de medicamentos entre sistemas
+
+3. **Busca Avançada de Medicamentos**:
+   - Autocomplete com React Query
+   - Busca por nome, código, ingrediente ativo
+
+4. **Melhorias de UX**:
+   - Confirmação visual de dispensação
+   - Código QR para verificação rápida
+   - Impressão de recibo
+
+5. **Integrações Futuras** (Phase 2):
+   - Olostech API (automated inventory)
+   - CISNORDESTE/CINCATARINA (order submission)
+   - Betha API (authorization tracking)
+
+---
+
+## 11. COMO TESTAR LOCALMENTE
+
+```bash
+# Start dev server
+npm run dev
+
+# Build for production
+npm run build
+
+# Database operations
+npm run db:push        # Sync schema
+npm run db:studio      # Visualize DB
+
+# Type checking
+npm run type-check
+```
+
+---
+
+## 12. VARIÁVEIS DE AMBIENTE
+
+```
+DATABASE_URL=postgres://...  # Neon PostgreSQL
+PERPLEXITY_API_KEY=...       # Para IA features (opcional)
+SESSION_SECRET=...            # Session signing
+REPL_ID=...                   # Replit auth
+```
+
+---
+
+## 13. CONTATOS & DOCUMENTAÇÃO
+
+- **Replit Docs**: Integrations, Database, Hosting
+- **React Query**: https://tanstack.com/query/latest
+- **Drizzle ORM**: https://orm.drizzle.team
+- **shadcn/ui**: https://ui.shadcn.com
+- **Zod**: https://zod.dev
+
+---
+
+**Última Atualização**: 27/11/2025  
+**Status**: Em desenvolvimento (Phase 1 completa, Phase 2 planejada)
