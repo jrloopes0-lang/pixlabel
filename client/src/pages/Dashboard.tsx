@@ -1,37 +1,74 @@
 import { Card } from "@/components/ui/Card";
-import { StatGrid, type Stat } from "@/components/ui/StatGrid";
+import { StatGrid } from "@/components/ui/StatGrid";
+import { Table } from "@/components/ui/Table";
+import { fetchDashboardHighlights } from "@/api";
+import { useFetch } from "@/hooks/useFetch";
+import { brandPalette } from "@/design/tokens";
 
-const kpi: Stat[] = [
-  { label: "Itens monitorados", value: "1.248" },
-  { label: "Cobertura média", value: "2.8 meses", tone: "warning" },
-  { label: "Pacientes PMS", value: "214" },
-  { label: "Itens críticos", value: "12", tone: "critical" },
+const rankingMock = [
+  { item: "Ceftriaxona 1g", consumo: "412 doses" },
+  { item: "Dipirona 500mg", consumo: "388 doses" },
+  { item: "Clonazepam 2,5mg/mL", consumo: "143 doses" },
 ];
 
-export function DashboardPage() {
+const criticMock = [
+  { item: "Midazolam 5mg/mL", risco: "Cobertura 5 dias" },
+  { item: "Noradrenalina", risco: "Lote próximo ao vencimento" },
+];
+
+export function DashboardPrincipalPage() {
+  const { data: highlights } = useFetch("dashboard", fetchDashboardHighlights);
+
   return (
     <div className="space-y-6">
-      <StatGrid stats={kpi} />
-      <div className="grid xl:grid-cols-2 gap-4">
-        <Card title="Ranking de Consumo">
-          <p className="text-sm text-muted-foreground">Top 10 medicamentos por consumo mensal.</p>
-          <div className="h-40 rounded-md border border-dashed border-border flex items-center justify-center text-muted-foreground">
-            Gráfico de barras (placeholder)
-          </div>
+      <div className="bg-gradient-to-r from-[color:var(--primary)]/10 via-[color:var(--primary)]/15 to-transparent border border-border rounded-2xl p-6">
+        <p className="text-eyebrow text-muted-foreground">Painel principal</p>
+        <h1 className="text-hero" style={{ color: brandPalette.techPurple }}>
+          Operação CAF em tempo real
+        </h1>
+        <p className="text-sm text-muted-foreground max-w-2xl mt-2">
+          Visão consolidada do estoque, PMS e rastreamento para acelerar decisões táticas.
+        </p>
+      </div>
+
+      <StatGrid stats={highlights ?? []} />
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card title="Ranking de consumo" subtitle="Top itens mais movimentados no período">
+          <ul className="space-y-3 text-sm text-muted-foreground">
+            {rankingMock.map((row) => (
+              <li key={row.item} className="flex items-center justify-between bg-[color:var(--muted)]/30 rounded-lg px-3 py-2">
+                <span className="font-semibold text-card-foreground">{row.item}</span>
+                <span>{row.consumo}</span>
+              </li>
+            ))}
+          </ul>
         </Card>
-        <Card title="Curva Temporal">
-          <p className="text-sm text-muted-foreground">Cobertura prevista para os próximos 12 meses.</p>
-          <div className="h-40 rounded-md border border-dashed border-border flex items-center justify-center text-muted-foreground">
-            Gráfico de linhas (placeholder)
-          </div>
+
+        <Card title="Alertas críticos" subtitle="Itens que precisam de atenção imediata">
+          <ul className="space-y-3 text-sm text-muted-foreground">
+            {criticMock.map((alert) => (
+              <li key={alert.item} className="flex items-center justify-between bg-[color:var(--muted)]/30 rounded-lg px-3 py-2">
+                <span className="font-semibold text-card-foreground">{alert.item}</span>
+                <span>{alert.risco}</span>
+              </li>
+            ))}
+          </ul>
         </Card>
       </div>
-      <Card title="Itens Críticos">
-        <ul className="space-y-2 text-sm text-muted-foreground">
-          <li>Amoxicilina 500mg - estoque para 7 dias</li>
-          <li>Insulina NPH - estoque para 5 dias</li>
-          <li>Dipirona 1g - ruptura prevista em 3 dias</li>
-        </ul>
+
+      <Card title="Curva temporal" subtitle="Evolução das movimentações em linhas gerais">
+        <Table
+          columns={[
+            { header: "Linha do tempo", accessor: (row: { label: string; valor: string }) => row.label },
+            { header: "Valor", accessor: (row: { label: string; valor: string }) => row.valor },
+          ]}
+          data={[
+            { label: "Últimas 24h", valor: "+128 saídas" },
+            { label: "Semana", valor: "+864 saídas" },
+            { label: "Mês", valor: "+3.420 saídas" },
+          ]}
+        />
       </Card>
     </div>
   );

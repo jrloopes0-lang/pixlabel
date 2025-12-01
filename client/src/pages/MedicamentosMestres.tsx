@@ -1,45 +1,31 @@
 import { Card } from "@/components/ui/Card";
-import { useCollection } from "@/hooks/useApi";
-import { Medication } from "@shared/types";
+import { Table } from "@/components/ui/Table";
+import { useMedicamentos } from "@/hooks/useMedicamentos";
 
 export function MedicamentosMestresPage() {
-  const { data } = useCollection<Medication>("/medicamentos-mestres");
+  const { data } = useMedicamentos();
 
   return (
     <div className="space-y-6">
-      <Card title="Base oficial de medicamentos">
+      <Card
+        title="Medicamentos Mestres"
+        subtitle="Catálogo oficial para alimentar os demais módulos"
+        actions={<button className="text-sm px-3 py-2 rounded-md border border-border">Adicionar</button>}
+      >
         <p className="text-sm text-muted-foreground">
-          Catálogo unificado com atributos clínicos, códigos e status regulatório. Esta base alimenta todas as operações de
-          estoque e PMS.
+          Cada item aqui representa a fonte única de fármacos, com suas apresentações e status regulatório.
         </p>
       </Card>
-      <Card title="Medicamentos cadastrados">
-        <div className="overflow-auto">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="text-left text-muted-foreground">
-                <th className="py-2">Nome</th>
-                <th className="py-2">Apresentação</th>
-                <th className="py-2">Classe</th>
-                <th className="py-2">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(data ?? []).map((item: Medication) => (
-                <tr key={item.id} className="border-t border-border">
-                  <td className="py-2 font-medium">{item.nome}</td>
-                  <td className="py-2">{item.apresentacao}</td>
-                  <td className="py-2">{item.classeTerapeutica}</td>
-                  <td className="py-2">
-                    <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800">
-                      {item.statusRegulatorio}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      <Card title="Medicamentos cadastrados" subtitle="Dados de exemplo carregados localmente">
+        <Table
+          columns={[
+            { header: "Nome comercial", accessor: "nomeComercial" },
+            { header: "Apresentação", accessor: "apresentacao" },
+            { header: "Classe", accessor: "classe" },
+            { header: "Status", accessor: "status" },
+          ]}
+          data={data}
+        />
       </Card>
     </div>
   );

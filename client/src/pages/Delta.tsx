@@ -1,19 +1,22 @@
 import { Card } from "@/components/ui/Card";
+import { useFetch } from "@/hooks/useFetch";
+import { fetchDeltaTrackingNotes } from "@/api";
 
 export function DeltaPage() {
+  const { data } = useFetch("delta", fetchDeltaTrackingNotes);
+
   return (
     <div className="space-y-6">
-      <Card title="Delta Tracking">
+      <Card title="Delta Tracking" subtitle="Módulo de apoio para conciliar divergências">
         <p className="text-sm text-muted-foreground">
-          Módulo auxiliar para conciliar divergências entre estoque físico e registros sistêmicos, permitindo auditorias
-          rápidas e ações corretivas.
+          Sincronize inventário, rastreie deltas e acompanhe reconciliações para manter estoque confiável.
         </p>
       </Card>
-      <Card title="Painéis">
+      <Card title="Observações rápidas" subtitle="Dados simulados para navegação visual">
         <ul className="list-disc pl-6 text-sm text-muted-foreground space-y-2">
-          <li>Comparativo de saldo por unidade e lote.</li>
-          <li>Histórico de ajustes com justificativa e responsável.</li>
-          <li>Alertas de delta acima do tolerado (threshold configurável).</li>
+          {(data ?? []).map((item) => (
+            <li key={item}>{item}</li>
+          ))}
         </ul>
       </Card>
     </div>
