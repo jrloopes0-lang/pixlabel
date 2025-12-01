@@ -1,0 +1,30 @@
+{
+  "name": "PIXELLAB Codespace",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:20",
+  "forwardPorts": [3000, 5173],
+  "postCreateCommand": "npm install",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "20"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint",
+        "bradlc.vscode-tailwindcss"
+      ]
+    }
+  },
+  "portsAttributes": {
+    "3000": {
+      "label": "PIXELLAB API + Vite middleware",
+      "onAutoForward": "notify"
+    },
+    "5173": {
+      "label": "Vite HMR",
+      "onAutoForward": "notify"
+    }
+  }
+}

@@ -1,75 +1,53 @@
-import { Card } from "@/components/ui/Card";
-import { StatGrid } from "@/components/ui/StatGrid";
-import { Table } from "@/components/ui/Table";
-import { fetchDashboardHighlights } from "@/api";
-import { useFetch } from "@/hooks/useFetch";
-import { brandPalette } from "@/design/tokens";
-
-const rankingMock = [
-  { item: "Ceftriaxona 1g", consumo: "412 doses" },
-  { item: "Dipirona 500mg", consumo: "388 doses" },
-  { item: "Clonazepam 2,5mg/mL", consumo: "143 doses" },
+const stats = [
+  { label: "Itens críticos", value: "12", tone: "text-red-600", description: "Rupturas ou abaixo do mínimo" },
+  { label: "Cobertura média", value: "34 dias", tone: "text-emerald-600", description: "Projeção pelos estoques" },
+  { label: "Dispensações hoje", value: "58", tone: "text-blue-600", description: "Pacientes atendidos" },
+  { label: "Vencimentos em 30d", value: "7", tone: "text-amber-600", description: "Itens para ajuste" },
 ];
 
-const criticMock = [
-  { item: "Midazolam 5mg/mL", risco: "Cobertura 5 dias" },
-  { item: "Noradrenalina", risco: "Lote próximo ao vencimento" },
+const panels = [
+  {
+    title: "Curva de consumo",
+    body: "Use esta área para conectar gráficos (Recharts) e visualizar a curva de consumo dos últimos 12 meses.",
+  },
+  {
+    title: "Top 5 medicamentos",
+    body: "Liste aqui os medicamentos mais dispensados e acompanhe as unidades com maior demanda.",
+  },
+  {
+    title: "Alertas operacionais",
+    body: "Central de avisos para vencimentos, rupturas e inconformidades de movimentação.",
+  },
 ];
 
-export function DashboardPrincipalPage() {
-  const { data: highlights } = useFetch("dashboard", fetchDashboardHighlights);
-
+export default function Dashboard() {
   return (
     <div className="space-y-6">
-      <div className="bg-gradient-to-r from-[color:var(--primary)]/10 via-[color:var(--primary)]/15 to-transparent border border-border rounded-2xl p-6">
-        <p className="text-eyebrow text-muted-foreground">Painel principal</p>
-        <h1 className="text-hero" style={{ color: brandPalette.techPurple }}>
-          Operação CAF em tempo real
-        </h1>
-        <p className="text-sm text-muted-foreground max-w-2xl mt-2">
-          Visão consolidada do estoque, PMS e rastreamento para acelerar decisões táticas.
-        </p>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {stats.map((stat) => (
+          <div
+            key={stat.label}
+            className="rounded-xl border border-border/70 bg-white p-4 shadow-sm"
+          >
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{stat.label}</p>
+            <p className={`mt-2 text-3xl font-bold ${stat.tone}`}>{stat.value}</p>
+            <p className="text-sm text-muted-foreground">{stat.description}</p>
+          </div>
+        ))}
       </div>
 
-      <StatGrid stats={highlights ?? []} />
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card title="Ranking de consumo" subtitle="Top itens mais movimentados no período">
-          <ul className="space-y-3 text-sm text-muted-foreground">
-            {rankingMock.map((row) => (
-              <li key={row.item} className="flex items-center justify-between bg-[color:var(--muted)]/30 rounded-lg px-3 py-2">
-                <span className="font-semibold text-card-foreground">{row.item}</span>
-                <span>{row.consumo}</span>
-              </li>
-            ))}
-          </ul>
-        </Card>
-
-        <Card title="Alertas críticos" subtitle="Itens que precisam de atenção imediata">
-          <ul className="space-y-3 text-sm text-muted-foreground">
-            {criticMock.map((alert) => (
-              <li key={alert.item} className="flex items-center justify-between bg-[color:var(--muted)]/30 rounded-lg px-3 py-2">
-                <span className="font-semibold text-card-foreground">{alert.item}</span>
-                <span>{alert.risco}</span>
-              </li>
-            ))}
-          </ul>
-        </Card>
+      <div className="grid gap-4 lg:grid-cols-3">
+        {panels.map((panel) => (
+          <div
+            key={panel.title}
+            className="h-full rounded-xl border border-border/80 bg-white p-4 shadow-sm"
+          >
+            <h3 className="text-lg font-semibold text-foreground">{panel.title}</h3>
+            <p className="mt-2 text-sm text-muted-foreground">{panel.body}</p>
+            <div className="mt-4 h-32 rounded-lg border border-dashed border-border/70 bg-slate-50" />
+          </div>
+        ))}
       </div>
-
-      <Card title="Curva temporal" subtitle="Evolução das movimentações em linhas gerais">
-        <Table
-          columns={[
-            { header: "Linha do tempo", accessor: (row: { label: string; valor: string }) => row.label },
-            { header: "Valor", accessor: (row: { label: string; valor: string }) => row.valor },
-          ]}
-          data={[
-            { label: "Últimas 24h", valor: "+128 saídas" },
-            { label: "Semana", valor: "+864 saídas" },
-            { label: "Mês", valor: "+3.420 saídas" },
-          ]}
-        />
-      </Card>
     </div>
   );
 }

@@ -1,43 +1,32 @@
-import { Card } from "@/components/ui/Card";
-import { StatGrid } from "@/components/ui/StatGrid";
-import { Table } from "@/components/ui/Table";
-import { useEstoque } from "@/hooks/useEstoque";
-
-const estatisticas = [
-  { label: "Entradas no mês", value: "86" },
-  { label: "Saídas no mês", value: "92" },
-  { label: "Ajustes realizados", value: "14" },
-  { label: "Lotes a vencer", value: "21", tone: "warning" as const },
+const fluxos = [
+  "Entrada (compra, devolução, transferência)",
+  "Saída (dispensação, ajuste, perda)",
+  "Ajustes de inventário",
+  "Vencimentos e quarentena",
+  "Curva ABC e suficiência",
 ];
 
-export function EstoquePage() {
-  const { data } = useEstoque();
-
+export default function Estoque() {
   return (
     <div className="space-y-6">
-      <StatGrid stats={estatisticas} />
+      <div className="rounded-xl border border-border/80 bg-white p-6 shadow-sm">
+        <h2 className="text-xl font-semibold text-foreground">Estoque</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Estruture as movimentações para manter rastreabilidade completa entre entradas, saídas e dispensações do PMS.
+        </p>
+        <div className="mt-4 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
+          {fluxos.map((fluxo) => (
+            <div key={fluxo} className="rounded-lg bg-slate-50 px-3 py-2">{fluxo}</div>
+          ))}
+        </div>
+      </div>
 
-      <Card title="Fluxos principais" subtitle="Entradas, saídas, ajustes e curva ABC">
-        <ul className="list-disc pl-6 space-y-2 text-sm text-muted-foreground">
-          <li>Registro de entradas com lote, validade e fornecedor.</li>
-          <li>Saídas com vínculo ao paciente ou setor e dedução FIFO.</li>
-          <li>Ajustes de inventário com justificativa e auditoria.</li>
-          <li>Análise de suficiência e curva ABC automática.</li>
-        </ul>
-      </Card>
-
-      <Card title="Movimentações recentes" subtitle="Dados simulados para visualização">
-        <Table
-          columns={[
-            { header: "Produto", accessor: "produto" },
-            { header: "Lote", accessor: "lote" },
-            { header: "Validade", accessor: "validade" },
-            { header: "Saldo", accessor: (row) => `${row.saldo} un.` },
-            { header: "Unidade", accessor: "unidade" },
-          ]}
-          data={data}
-        />
-      </Card>
+      <div className="rounded-xl border border-dashed border-border/80 bg-slate-50 p-6 text-sm text-muted-foreground">
+        Conecte à tabela <code className="rounded bg-white px-1 py-0.5">estoque</code> e
+        <code className="ml-1 rounded bg-white px-1 py-0.5">movimentacoes_estoque</code> do schema Drizzle. Use as rotas
+        <code className="ml-1 rounded bg-white px-1 py-0.5">/api/estoque</code> e
+        <code className="ml-1 rounded bg-white px-1 py-0.5">/api/movimentacoes</code> como base.
+      </div>
     </div>
   );
 }

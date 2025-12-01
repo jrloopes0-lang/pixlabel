@@ -4,15 +4,19 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import routes from "./routes";
 
-async function startDevServer() {
+async function startServer() {
   const app = express();
   const host = process.env.HOST || "0.0.0.0";
   const port = Number(process.env.PORT) || 3000;
-  const hmrHost = process.env.HMR_HOST || host;
-  const hmrPort = Number(process.env.HMR_PORT) || 5173;
-  const clientRoot = path.resolve(process.cwd(), "client");
 
-  try {
+  app.use(express.json());
+  app.use("/api", routes);
+
+  if (process.env.NODE_ENV === "development") {
+    const hmrHost = process.env.HMR_HOST || host;
+    const hmrPort = Number(process.env.HMR_PORT) || 5173;
+    const clientRoot = path.resolve(process.cwd(), "client");
+
     const vite = await createViteServer({
       appType: "custom",
       root: clientRoot,
@@ -25,9 +29,6 @@ async function startDevServer() {
         },
       },
     });
-
-    app.use(express.json());
-    app.use("/api", routes);
 
     app.use(vite.middlewares);
 
@@ -54,9 +55,22 @@ async function startDevServer() {
       console.log(`🩺 Health → http://${host}:${port}/api/health`);
       console.log("==========================================");
     });
-  } catch (error) {
-    console.error("❌ Erro ao iniciar servidor dev:", error);
+
+    return;
   }
+
+  const publicDir = path.join(process.cwd(), "dist", "public");
+  app.use(express.static(publicDir));
+
+  app.get("*", (_req, res) => {
+    res.sendFile(path.join(publicDir, "index.html"));
+  });
+
+  app.listen(port, host, () => {
+    console.log(`🚀 Production server rodando em http://${host}:${port}`);
+  });
 }
 
-startDevServer();
+startServer().catch((error) => {
+  console.error("❌ Erro ao iniciar servidor:", error);
+});

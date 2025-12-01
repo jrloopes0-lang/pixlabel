@@ -1,16 +1,33 @@
-import { Navigate, Route, Routes } from "react-router-dom";
-import { LayoutRoot } from "@/components/layout/LayoutRoot";
-import { appRoutes, defaultRedirect } from "@/routes";
+import "./index.css";
+import { Route, Switch } from "wouter";
+import AppLayout from "./layout/AppLayout";
+import Home from "./pages/Home";
+import Dashboard from "./pages/Dashboard";
+import MedicamentosMestres from "./pages/MedicamentosMestres";
+import Estoque from "./pages/Estoque";
+import Pms from "./pages/Pms";
+import DeltaTracking from "./pages/DeltaTracking";
+
+function NotFound() {
+  return (
+    <div className="rounded-xl border border-border/80 bg-white p-6 text-sm text-muted-foreground">
+      Página não encontrada. Verifique a rota ou volte para a Home.
+    </div>
+  );
+}
 
 export default function App() {
   return (
-    <LayoutRoot pageTitle="PIXELLAB CAF" hint="Estrutura visual inicial">
-      <Routes>
-        <Route path="/" element={<Navigate to={defaultRedirect} />} />
-        {appRoutes.map((route) => (
-          <Route key={route.path} path={route.path} element={route.element} />
-        ))}
-      </Routes>
-    </LayoutRoot>
+    <AppLayout>
+      <Switch>
+        <Route path="/" component={Home} />
+        <Route path="/dashboard" component={Dashboard} />
+        <Route path="/medicamentos-mestres" component={MedicamentosMestres} />
+        <Route path="/estoque" component={Estoque} />
+        <Route path="/pms" component={Pms} />
+        <Route path="/delta" component={DeltaTracking} />
+        <Route component={NotFound} />
+      </Switch>
+    </AppLayout>
   );
 }
