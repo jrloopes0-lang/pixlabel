@@ -12,6 +12,10 @@ Este guia resume como preparar e trabalhar no Codespaces para rodar o front-end 
 2. Aguarde o contêiner ser criado com base em `.devcontainer/devcontainer.json` (Node 20, extensões Prettier/ESLint/Tailwind). O `postCreateCommand` executa `npm install` automaticamente.
 3. Certifique-se de que as portas 3000 (API + front) e 5173 (HMR) estão encaminhadas; o Codespaces mostrará notificações automáticas.
 
+## Instalação das dependências
+- A instalação padrão (`npm install`) completa em poucos segundos e atualmente aponta 10 vulnerabilidades (3 low, 5 moderate, 2 high). Utilize `npm audit fix` ou `npm audit fix --force` se desejar corrigir automaticamente, revisando eventuais breaking changes.
+- O npm exibe o aviso `Unknown env config "http-proxy"`; remova a variável de ambiente correspondente ou ignore caso não utilize proxy.
+
 ## Comandos principais
 - **Verificar tipos**: `npm run check`
 - **Iniciar dev server (Express + Vite middleware)**: `npm run dev`
