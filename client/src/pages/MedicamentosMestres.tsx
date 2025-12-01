@@ -25,7 +25,7 @@ export function MedicamentosMestresPage() {
               </tr>
             </thead>
             <tbody>
-              {(data ?? []).map((item) => (
+              {(data ?? []).map((item: Medication) => (
                 <tr key={item.id} className="border-t border-border">
                   <td className="py-2 font-medium">{item.nome}</td>
                   <td className="py-2">{item.apresentacao}</td>

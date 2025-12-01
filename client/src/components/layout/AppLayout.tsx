@@ -30,7 +30,7 @@ export function AppLayout({ title, children }: { title: string; children: ReactN
             <NavLink
               key={item.to}
               to={item.to}
-              className={({ isActive }) =>
+              className={({ isActive }: { isActive: boolean }) =>
                 `flex items-center gap-3 px-4 py-2 rounded-md transition-colors ${
                   isActive
                     ? "bg-[color:var(--sidebar-primary)]/20 text-[color:var(--sidebar-primary-foreground)]"
