@@ -2,8 +2,10 @@ import axios from "axios";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "/api";
+
 export const api = axios.create({
-  baseURL: "/api",
+  baseURL: apiBaseUrl,
   headers: { "Content-Type": "application/json" },
 });
 
