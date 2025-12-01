@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import { Sidebar } from "@/components/navigation/Sidebar";
 import { Topbar } from "@/components/navigation/Topbar";
 import { brandPalette } from "@/design/tokens";
+import { appRoutes } from "@/routes";
 
 interface LayoutRootProps {
   pageTitle: string;
@@ -14,16 +15,8 @@ export function LayoutRoot({ pageTitle, hint, children }: LayoutRootProps) {
   const { pathname } = useLocation();
 
   const resolvedTitle = useMemo(() => {
-    const titles: Record<string, string> = {
-      "/home": "Home",
-      "/dashboard": "Dashboard Principal",
-      "/medicamentos-mestres": "Medicamentos Mestres",
-      "/estoque": "Estoque",
-      "/pms": "PMS",
-      "/delta": "Delta Tracking",
-    };
-
-    return titles[pathname] ?? pageTitle;
+    const match = appRoutes.find((route) => route.path === pathname);
+    return match?.label ?? pageTitle;
   }, [pageTitle, pathname]);
 
   return (

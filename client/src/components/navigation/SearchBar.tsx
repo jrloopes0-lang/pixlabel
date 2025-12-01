@@ -1,22 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useUI } from "@/context/UIContext";
-import { apiEndpoints } from "@/api";
+import { appRoutes } from "@/routes";
 
 export function SearchBar() {
   const [query, setQuery] = useState("");
   const { spotlightOpen, setSpotlightOpen } = useUI();
 
-  const shortcuts = useMemo(
-    () => [
-      { label: "Home", path: apiEndpoints.home },
-      { label: "Dashboard", path: apiEndpoints.dashboard },
-      { label: "Medicamentos", path: apiEndpoints.medicamentos },
-      { label: "Estoque", path: apiEndpoints.estoque },
-      { label: "PMS", path: apiEndpoints.pms },
-      { label: "Delta Tracking", path: apiEndpoints.delta },
-    ],
-    [],
-  );
+  const shortcuts = useMemo(() => appRoutes, []);
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -30,9 +20,7 @@ export function SearchBar() {
     return () => window.removeEventListener("keydown", handler);
   }, [setSpotlightOpen, spotlightOpen]);
 
-  const filtered = shortcuts.filter((item) =>
-    item.label.toLowerCase().includes(query.toLowerCase()),
-  );
+  const filtered = shortcuts.filter((item) => item.label.toLowerCase().includes(query.toLowerCase()));
 
   return (
     <div className="bg-[color:var(--muted)]/30 border border-border rounded-xl px-4 py-3 shadow-sm">
@@ -51,7 +39,10 @@ export function SearchBar() {
           {filtered.map((item) => (
             <div key={item.path} className="text-sm text-muted-foreground flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-[color:var(--primary)]" />
-              <span>{item.label}</span>
+              <div className="leading-tight">
+                <span className="block text-card-foreground font-semibold">{item.label}</span>
+                <span className="block text-xs text-muted-foreground">{item.description}</span>
+              </div>
             </div>
           ))}
           {filtered.length === 0 && <p className="text-sm text-muted-foreground">Nenhum resultado para "{query}"</p>}

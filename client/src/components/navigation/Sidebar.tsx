@@ -1,15 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { useUI } from "@/context/UIContext";
 import { brandPalette } from "@/design/tokens";
-
-const navItems = [
-  { to: "/home", label: "Home" },
-  { to: "/dashboard", label: "Dashboard Principal" },
-  { to: "/medicamentos-mestres", label: "Medicamentos Mestres" },
-  { to: "/estoque", label: "Estoque" },
-  { to: "/pms", label: "PMS" },
-  { to: "/delta", label: "Delta Tracking" },
-];
+import { appRoutes } from "@/routes";
 
 export function Sidebar() {
   const { sidebarCollapsed, toggleSidebar } = useUI();
@@ -36,10 +28,10 @@ export function Sidebar() {
         </button>
       </div>
       <nav className="px-3 space-y-1">
-        {navItems.map((item) => (
+        {appRoutes.map((item) => (
           <NavLink
-            key={item.to}
-            to={item.to}
+            key={item.path}
+            to={item.path}
             className={({ isActive }: { isActive: boolean }) =>
               `flex items-center gap-3 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 isActive
