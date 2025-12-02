@@ -6,8 +6,11 @@ export function useAuth() {
   return useQuery<AuthStatus>({
     queryKey: queryKeys.auth,
     queryFn: async () => {
-      const response = await apiRequest("GET", "/api/auth/status");
-      return response.data;
+      const response = await fetch("/api/auth/status", {
+        credentials: "include",
+      });
+      const json = await response.json();
+      return json.data;
     },
     retry: false,
   });
