@@ -1,0 +1,54 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: 20
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL_PRODUCTION }}
+      SESSION_SECRET: ${{ secrets.SESSION_SECRET_PRODUCTION }}
+      OAUTH_CLIENT_ID: ${{ secrets.OAUTH_CLIENT_ID_PRODUCTION }}
+      OAUTH_CLIENT_SECRET: ${{ secrets.OAUTH_CLIENT_SECRET_PRODUCTION }}
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify (type-check, test, build)
+        run: npm run verify
+
+      - name: Deploy to Railway
+        if: env.RAILWAY_TOKEN != ''
+        env:
+          RAILWAY_TOKEN: ${{ env.RAILWAY_TOKEN }}
+        run: npx railway up --service pixellab --ci
+
+      - name: Post-deploy smoke
+        if: env.RAILWAY_TOKEN != ''
+        run: echo "Railway deploy triggered; monitor dashboard for status."
+
+      - name: Notify Slack
+        if: env.SLACK_WEBHOOK_URL != ''
+        run: curl -X POST -H 'Content-type: application/json' \
+          --data '{"text":"PIXELLAB deploy pipeline finished."}' \
+          ${{ env.SLACK_WEBHOOK_URL }}
