@@ -18,27 +18,27 @@ import * as schema from "../shared/schema.js";
 const DATABASE_URL = process.env.DATABASE_URL;
 
 if (!DATABASE_URL) {
-  console.error("❌ Erro: DATABASE_URL não configurada");
-  console.error("Configure DATABASE_URL no arquivo .env");
+  console.error("❌ Error: DATABASE_URL not configured");
+  console.error("Set DATABASE_URL in .env file");
   process.exit(1);
 }
 
 const db = drizzle(DATABASE_URL, { schema });
 
 async function seedDatabase() {
-  console.log("\n🌱 PIXLABEL - Carregando Dados Iniciais");
+  console.log("\n🌱 PIXLABEL - Loading Initial Data");
   console.log("=========================================\n");
 
   try {
     // 1. Usuários
-    console.log("👤 Criando usuários...");
+    console.log("👤 Creating users...");
     const adminUser = await db.insert(schema.users).values({
       email: "admin@pixlabel.local",
       firstName: "Administrador",
       lastName: "Sistema",
       role: "admin",
     }).returning();
-    console.log(`  ✓ Admin criado: ${adminUser[0].email}`);
+    console.log(`  ✓ Admin created: ${adminUser[0].email}`);
 
     const operatorUser = await db.insert(schema.users).values({
       email: "operador@pixlabel.local",
@@ -46,29 +46,29 @@ async function seedDatabase() {
       lastName: "Farmácia",
       role: "operator",
     }).returning();
-    console.log(`  ✓ Operador criado: ${operatorUser[0].email}`);
+    console.log(`  ✓ Operator created: ${operatorUser[0].email}`);
 
     // 2. Unidades de Saúde
-    console.log("\n🏥 Criando unidades de saúde...");
+    console.log("\n🏥 Creating health units...");
     const units = await db.insert(schema.units).values([
       { name: "UBS Centro", type: "centro_saude" },
       { name: "UBS Bairro Norte", type: "centro_saude" },
       { name: "Hospital Municipal", type: "hospital" },
       { name: "Farmácia Central", type: "farmacia" },
     ]).returning();
-    console.log(`  ✓ ${units.length} unidades criadas`);
+    console.log(`  ✓ ${units.length} units created`);
 
     // 3. Fornecedores
-    console.log("\n🏢 Criando fornecedores...");
+    console.log("\n🏢 Creating suppliers...");
     const suppliers = await db.insert(schema.suppliers).values([
       { name: "Farmamed Distribuidora", contact: "(85) 3000-1000", priority: 2 },
       { name: "Medicamentos Nordeste LTDA", contact: "(85) 3000-2000", priority: 1 },
       { name: "Farma Ceará", contact: "(85) 3000-3000", priority: 1 },
     ]).returning();
-    console.log(`  ✓ ${suppliers.length} fornecedores criados`);
+    console.log(`  ✓ ${suppliers.length} suppliers created`);
 
     // 4. Medicamentos
-    console.log("\n💊 Criando medicamentos de exemplo...");
+    console.log("\n💊 Creating sample medications...");
     const medications = await db.insert(schema.items).values([
       {
         code: "MED001",
@@ -135,10 +135,10 @@ async function seedDatabase() {
         minStockMonths: 2,
       },
     ]).returning();
-    console.log(`  ✓ ${medications.length} medicamentos criados`);
+    console.log(`  ✓ ${medications.length} medications created`);
 
     // 5. Pacientes SESI (Excepcionais)
-    console.log("\n👨‍⚕️ Criando pacientes SESI...");
+    console.log("\n👨‍⚕️ Creating SESI patients...");
     const patients = await db.insert(schema.sesiPatients).values([
       {
         name: "Maria da Silva Santos",
@@ -165,12 +165,12 @@ async function seedDatabase() {
         notes: "Hipertensão arterial",
       },
     ]).returning();
-    console.log(`  ✓ ${patients.length} pacientes SESI criados`);
+    console.log(`  ✓ ${patients.length} SESI patients created`);
 
     // 6. Estoque SESI
-    console.log("\n📦 Criando estoque SESI inicial...");
+    console.log("\n📦 Creating initial SESI stock...");
     
-    // Encontrar alguns medicamentos para estoque SESI
+    // Encontrar alguns medications para estoque SESI
     const losartana = medications.find(m => m.code === "MED003");
     const metformina = medications.find(m => m.code === "MED004");
     const atenolol = medications.find(m => m.code === "MED007");
@@ -202,17 +202,17 @@ async function seedDatabase() {
           quantity: 180,
         },
       ]).returning();
-      console.log(`  ✓ ${sesiStock.length} lotes de estoque SESI criados`);
+      console.log(`  ✓ ${sesiStock.length} SESI stock batches created`);
     }
 
     // 7. Pedido de exemplo
-    console.log("\n📋 Criando pedido de exemplo...");
+    console.log("\n📋 Creating sample order...");
     const order = await db.insert(schema.orders).values({
       supplierId: suppliers[0].id,
       status: "draft",
       horizonMonths: 3,
     }).returning();
-    console.log(`  ✓ Pedido criado: ${order[0].id}`);
+    console.log(`  ✓ Order created: ${order[0].id}`);
 
     // Adicionar itens ao pedido
     const orderItems = await db.insert(schema.orderItems).values([
@@ -227,10 +227,10 @@ async function seedDatabase() {
         quantity: 400,
       },
     ]).returning();
-    console.log(`  ✓ ${orderItems.length} itens adicionados ao pedido`);
+    console.log(`  ✓ ${orderItems.length} items added to order`);
 
     // 8. Log de auditoria inicial
-    console.log("\n📝 Criando log de auditoria...");
+    console.log("\n📝 Creating audit log...");
     await db.insert(schema.auditLogs).values({
       userId: adminUser[0].id,
       action: "import",
@@ -238,28 +238,28 @@ async function seedDatabase() {
       changes: JSON.stringify({ action: "seed_database", timestamp: new Date() }),
       ipAddress: "127.0.0.1",
     });
-    console.log("  ✓ Log de auditoria criado");
+    console.log("  ✓ Audit log created");
 
-    console.log("\n✅ Dados iniciais carregados com sucesso!");
-    console.log("\n📊 Resumo:");
-    console.log(`   • ${2} usuários`);
-    console.log(`   • ${units.length} unidades de saúde`);
+    console.log("\n✅ Initial data loaded successfully!");
+    console.log("\n📊 Summary:");
+    console.log(`   • ${2} users`);
+    console.log(`   • ${units.length} health units`);
     console.log(`   • ${suppliers.length} fornecedores`);
-    console.log(`   • ${medications.length} medicamentos`);
+    console.log(`   • ${medications.length} medications`);
     console.log(`   • ${patients.length} pacientes SESI`);
     console.log(`   • 4 lotes de estoque SESI`);
     console.log(`   • 1 pedido de exemplo\n`);
 
-    console.log("💡 Credenciais de acesso:");
+    console.log("💡 Access credentials:");
     console.log("   Admin:    admin@pixlabel.local");
     console.log("   Operador: operador@pixlabel.local\n");
 
   } catch (error: any) {
-    console.error("\n❌ Erro ao carregar dados:", error);
+    console.error("\n❌ Error loading data:", error);
     
     // Se for erro de duplicação, significa que dados já existem
     if (error.message?.includes("duplicate") || error.message?.includes("unique")) {
-      console.log("\n⚠️  Alguns dados já existem no banco de dados.");
+      console.log("\n⚠️  Some data already exists in the database.");
       console.log("   Execute 'npm run db:reset' primeiro para limpar tudo.\n");
     }
     

@@ -24,6 +24,9 @@ if (!DATABASE_URL) {
 
 const db = drizzle(DATABASE_URL, { schema });
 
+// Supported confirmation responses (English and Portuguese)
+const AFFIRMATIVE_RESPONSES = ['y', 'yes', 's', 'sim'];
+
 async function askConfirmation(question: string): Promise<boolean> {
   const rl = readline.createInterface({
     input: process.stdin,
@@ -33,15 +36,17 @@ async function askConfirmation(question: string): Promise<boolean> {
   return new Promise((resolve) => {
     rl.question(question, (answer) => {
       rl.close();
-      resolve(answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes' || answer.toLowerCase() === 's' || answer.toLowerCase() === 'sim');
+      const normalizedAnswer = answer.toLowerCase().trim();
+      resolve(AFFIRMATIVE_RESPONSES.includes(normalizedAnswer));
     });
   });
 }
 
 async function dropAllTables() {
-  console.log("🗑️  Removendo todas as tabelas...");
+  console.log("🗑️  Dropping all tables...");
   
-  // Lista de todas as tabelas do schema
+  // List of all tables in schema (in reverse dependency order for CASCADE)
+  // Note: Keep this synchronized with shared/schema.ts
   const tables = [
     "sesi_dispensations",
     "sesi_stock",
@@ -59,15 +64,15 @@ async function dropAllTables() {
   for (const table of tables) {
     try {
       await db.execute(sql.raw(`DROP TABLE IF EXISTS "${table}" CASCADE`));
-      console.log(`  ✓ Tabela ${table} removida`);
+      console.log(`  ✓ Table ${table} dropped`);
     } catch (error) {
-      console.warn(`  ⚠️  Aviso ao remover ${table}:`, error);
+      console.warn(`  ⚠️  Warning while dropping ${table}:`, error);
     }
   }
 }
 
 async function createTables() {
-  console.log("\n📦 Criando tabelas...");
+  console.log("\n📦 Creating tables...");
   
   // Criar tabelas principais
   await db.execute(sql.raw(`
@@ -81,7 +86,7 @@ async function createTables() {
       "updated_at" timestamp NOT NULL DEFAULT now()
     )
   `));
-  console.log("  ✓ Tabela users criada");
+  console.log("  ✓ Table users created");
 
   await db.execute(sql.raw(`
     CREATE UNIQUE INDEX IF NOT EXISTS "users_email_idx" ON "users" ("email")
@@ -96,7 +101,7 @@ async function createTables() {
       "updated_at" timestamp NOT NULL DEFAULT now()
     )
   `));
-  console.log("  ✓ Tabela units criada");
+  console.log("  ✓ Table units created");
 
   await db.execute(sql.raw(`
     CREATE TABLE IF NOT EXISTS "suppliers" (
@@ -108,7 +113,7 @@ async function createTables() {
       "updated_at" timestamp NOT NULL DEFAULT now()
     )
   `));
-  console.log("  ✓ Tabela suppliers criada");
+  console.log("  ✓ Table suppliers created");
 
   await db.execute(sql.raw(`
     CREATE TABLE IF NOT EXISTS "items" (
@@ -123,7 +128,7 @@ async function createTables() {
       "updated_at" timestamp NOT NULL DEFAULT now()
     )
   `));
-  console.log("  ✓ Tabela items criada");
+  console.log("  ✓ Table items created");
 
   await db.execute(sql.raw(`
     CREATE UNIQUE INDEX IF NOT EXISTS "items_code_idx" ON "items" ("code")
@@ -142,7 +147,7 @@ async function createTables() {
       "updated_at" timestamp NOT NULL DEFAULT now()
     )
   `));
-  console.log("  ✓ Tabela orders criada");
+  console.log("  ✓ Table orders created");
 
   await db.execute(sql.raw(`
     CREATE INDEX IF NOT EXISTS "orders_supplier_idx" ON "orders" ("supplier_id")
@@ -160,7 +165,7 @@ async function createTables() {
       "created_at" timestamp NOT NULL DEFAULT now()
     )
   `));
-  console.log("  ✓ Tabela order_items criada");
+  console.log("  ✓ Table order_items created");
 
   await db.execute(sql.raw(`
     CREATE INDEX IF NOT EXISTS "order_items_order_idx" ON "order_items" ("order_id")
@@ -177,7 +182,7 @@ async function createTables() {
       "created_at" timestamp NOT NULL DEFAULT now()
     )
   `));
-  console.log("  ✓ Tabela import_history criada");
+  console.log("  ✓ Table import_history created");
 
   await db.execute(sql.raw(`
     CREATE TABLE IF NOT EXISTS "audit_logs" (
@@ -191,7 +196,7 @@ async function createTables() {
       "created_at" timestamp NOT NULL DEFAULT now()
     )
   `));
-  console.log("  ✓ Tabela audit_logs criada");
+  console.log("  ✓ Table audit_logs created");
 
   await db.execute(sql.raw(`
     CREATE INDEX IF NOT EXISTS "audit_logs_user_idx" ON "audit_logs" ("user_id")
@@ -218,7 +223,7 @@ async function createTables() {
       "updated_at" timestamp NOT NULL DEFAULT now()
     )
   `));
-  console.log("  ✓ Tabela sesi_patients criada");
+  console.log("  ✓ Table sesi_patients created");
 
   await db.execute(sql.raw(`
     CREATE UNIQUE INDEX IF NOT EXISTS "sesi_patients_cpf_idx" ON "sesi_patients" ("cpf")
@@ -238,7 +243,7 @@ async function createTables() {
       "updated_at" timestamp NOT NULL DEFAULT now()
     )
   `));
-  console.log("  ✓ Tabela sesi_stock criada");
+  console.log("  ✓ Table sesi_stock created");
 
   await db.execute(sql.raw(`
     CREATE INDEX IF NOT EXISTS "sesi_stock_item_idx" ON "sesi_stock" ("item_id")
@@ -259,7 +264,7 @@ async function createTables() {
       "created_at" timestamp NOT NULL DEFAULT now()
     )
   `));
-  console.log("  ✓ Tabela sesi_dispensations criada");
+  console.log("  ✓ Table sesi_dispensations created");
 
   await db.execute(sql.raw(`
     CREATE INDEX IF NOT EXISTS "sesi_dispensations_patient_idx" ON "sesi_dispensations" ("patient_id")
@@ -271,19 +276,19 @@ async function createTables() {
     CREATE INDEX IF NOT EXISTS "sesi_dispensations_created_idx" ON "sesi_dispensations" ("created_at")
   `));
 
-  console.log("\n✅ Todas as tabelas foram criadas com sucesso!");
+  console.log("\n✅ All tables created successfully!");
 }
 
 async function resetDatabase() {
-  console.log("\n🔄 PIXLABEL - Reset do Sistema");
-  console.log("================================\n");
+  console.log("\n🔄 PIXLABEL - System Reset");
+  console.log("===========================\n");
 
-  // Confirmação em ambiente de produção
+  // Confirmation required in production environment
   if (process.env.NODE_ENV === "production") {
-    console.warn("⚠️  ATENÇÃO: Você está em ambiente de PRODUÇÃO!");
-    const confirmed = await askConfirmation("Tem certeza que deseja resetar o banco de dados? (y/n): ");
+    console.warn("⚠️  WARNING: You are in PRODUCTION environment!");
+    const confirmed = await askConfirmation("Are you sure you want to reset the database? (y/n): ");
     if (!confirmed) {
-      console.log("❌ Operação cancelada pelo usuário");
+      console.log("❌ Operation cancelled by user");
       process.exit(0);
     }
   }
@@ -292,12 +297,12 @@ async function resetDatabase() {
     await dropAllTables();
     await createTables();
     
-    console.log("\n🎉 Reset concluído com sucesso!");
-    console.log("\n💡 Próximos passos:");
-    console.log("   • Execute 'npm run db:seed' para carregar dados iniciais");
-    console.log("   • Execute 'npm run dev' para iniciar o servidor\n");
+    console.log("\n🎉 Reset completed successfully!");
+    console.log("\n💡 Next steps:");
+    console.log("   • Run 'npm run db:seed' to load initial data");
+    console.log("   • Run 'npm run dev' to start the server\n");
   } catch (error) {
-    console.error("\n❌ Erro durante o reset:", error);
+    console.error("\n❌ Error during reset:", error);
     process.exit(1);
   }
 }
