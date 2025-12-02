@@ -16,7 +16,7 @@ HOST = "0.0.0.0"
 [healthcheck]
 enabled = true
 path = "/api/health"
-timeout = 5
-interval = 15
+timeout = 30
+interval = 20
 successThreshold = 1
-failureThreshold = 2
+failureThreshold = 5

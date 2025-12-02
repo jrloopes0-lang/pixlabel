@@ -17,12 +17,13 @@ const app = express();
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
-// Health check (early response)
+// Health check (must be before other routes for Railway healthcheck)
 app.get("/api/health", (_req, res) => {
   res.json({ 
     status: "ok", 
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV 
+    environment: process.env.NODE_ENV,
+    uptime: process.uptime()
   });
 });
 
@@ -61,8 +62,13 @@ app.use(express.static(publicDir, {
   extensions: ["html", "js", "css", "json"],
 }));
 
-// SPA fallback route
+// SPA fallback route (only for non-API routes)
 app.get("*", (req, res) => {
+  // Skip API routes (already handled above)
+  if (req.path.startsWith("/api")) {
+    return res.status(404).json({ error: "API endpoint not found" });
+  }
+  
   // Don't serve HTML for actual files
   if (path.extname(req.path)) {
     return res.status(404).send("Not found");

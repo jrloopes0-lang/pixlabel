@@ -114,12 +114,20 @@ const createInMemoryDb = () => {
 
 let db: any;
 
-if (process.env.DATABASE_URL) {
-  db = drizzle(process.env.DATABASE_URL, { schema });
-  console.log("✅ Database connected via Drizzle ORM (Neon HTTP)");
-} else {
+// Initialize database connection safely
+try {
+  if (process.env.DATABASE_URL) {
+    db = drizzle(process.env.DATABASE_URL, { schema });
+    console.log("✅ Database connected via Drizzle ORM (Neon HTTP)");
+  } else {
+    db = createInMemoryDb();
+    console.warn("⚠️ DATABASE_URL não configurada. Usando fallback em memória para desenvolvimento.");
+  }
+} catch (error) {
+  console.error("❌ Database connection error:", error);
+  // Fallback to in-memory if connection fails
+  console.log("🔄 Falling back to in-memory database...");
   db = createInMemoryDb();
-  console.warn("⚠️ DATABASE_URL não configurada. Usando fallback em memória para desenvolvimento.");
 }
 
 export { db };
