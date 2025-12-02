@@ -2,14 +2,27 @@
 builder = "nixpacks"
 
 [build.nixpacks]
-buildCommand = "npm install && npm run build"
+node = "20"
+buildCommand = "npm ci && npm run build"
 
 [deploy]
-startCommand = "npm start"
+startCommand = "node dist/index.js"
 restartPolicyType = "on_failure"
-restartPolicyMaxRetries = 5
+restartPolicyMaxRetries = 10
+numReplicas = 1
+
+[deploy.environment]
+NODE_ENV = "production"
+HOST = "0.0.0.0"
 
 [healthcheck]
+enabled = true
 path = "/api/health"
 timeout = 10
 interval = 30
+successThreshold = 1
+failureThreshold = 3
+
+[deploy.volumes]
+# Opcional: persistir logs
+# logs = "/app/logs"
