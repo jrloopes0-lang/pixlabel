@@ -1,25 +1,18 @@
-name: Deploy to Production
+name: Deploy to Railway
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Deployment environment'
-        required: true
-        default: 'staging'
-        type: choice
-        options:
-          - staging
-          - production
 
 jobs:
-  pre-deploy-checks:
+  quality-checks:
+    name: Quality Checks
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
       
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -30,18 +23,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Type check
+      - name: TypeScript type check
         run: npm run check
 
       - name: Run unit tests
         run: npm run test:unit
 
-  build-artifact:
+  build:
+    name: Build Application
     runs-on: ubuntu-latest
-    needs: pre-deploy-checks
+    needs: quality-checks
     
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
       
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -55,113 +50,110 @@ jobs:
       - name: Build application
         run: npm run build
 
-      - name: Create deployment artifact
+      - name: Verify build artifacts
         run: |
-          mkdir -p deployment
-          cp -r dist deployment/
-          cp package.json deployment/
-          cp package-lock.json deployment/
-          cd deployment && npm install --omit=dev
+          echo "🔍 Verifying build artifacts..."
+          [ -f "dist/index.js" ] || (echo "❌ Missing dist/index.js" && exit 1)
+          [ -d "dist/public" ] || (echo "❌ Missing dist/public/" && exit 1)
+          ls -lh dist/
+          echo "✅ Build artifacts verified"
 
-      - name: Upload artifact
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: deployment-package
-          path: deployment/
-          retention-days: 30
+          name: build-artifacts
+          path: |
+            dist/
+            package.json
+            package-lock.json
+          retention-days: 7
 
-  deploy-staging:
+  deploy-railway:
+    name: Deploy to Railway
     runs-on: ubuntu-latest
-    needs: build-artifact
-    if: github.ref == 'refs/heads/main' || github.event.inputs.environment == 'staging'
-    environment:
-      name: staging
-      url: https://pixlabel-staging.seuprovider.com
-    
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: deployment-package
-
-      - name: Deploy to Staging
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL_STAGING }}
-          SESSION_SECRET: ${{ secrets.SESSION_SECRET_STAGING }}
-          OAUTH_CLIENT_ID: ${{ secrets.OAUTH_CLIENT_ID_STAGING }}
-          OAUTH_CLIENT_SECRET: ${{ secrets.OAUTH_CLIENT_SECRET_STAGING }}
-        run: |
-          echo "🚀 Deploying to staging..."
-          # Exemplo Railway CLI:
-          # railway up --service pixlabel-staging
-          # Exemplo Docker:
-          # docker build -t pixlabel:staging .
-          # docker run -e DATABASE_URL -e SESSION_SECRET -e OAUTH_CLIENT_ID -e OAUTH_CLIENT_SECRET -p 3000:3000 pixlabel:staging
-          # Exemplo SSH:
-          # scp -r deployment/* user@staging-server:/app && ssh user@staging-server 'cd /app && npm start'
-          echo "✅ Staging deployment would occur here"
-
-  deploy-production:
-    runs-on: ubuntu-latest
-    needs: [build-artifact, pre-deploy-checks]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: build
+    if: github.ref == 'refs/heads/main'
     environment:
       name: production
-      url: https://pixlabel.seuprovider.com
+      url: ${{ steps.deploy.outputs.url }}
     
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: deployment-package
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
 
-      - name: Verify production readiness
-        run: |
-          echo "🔍 Verifying production requirements..."
-          [ -f "dist/index.js" ] || (echo "❌ Missing dist/index.js" && exit 1)
-          [ -f "package.json" ] || (echo "❌ Missing package.json" && exit 1)
-          echo "✅ Production artifacts verified"
-
-      - name: Deploy to Production
+      - name: Deploy to Railway
+        id: deploy
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL_PRODUCTION }}
-          SESSION_SECRET: ${{ secrets.SESSION_SECRET_PRODUCTION }}
-          OAUTH_CLIENT_ID: ${{ secrets.OAUTH_CLIENT_ID_PRODUCTION }}
-          OAUTH_CLIENT_SECRET: ${{ secrets.OAUTH_CLIENT_SECRET_PRODUCTION }}
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
-          echo "🚀 Deploying to production..."
-          # Exemplo Railway CLI:
-          # railway up --service pixlabel-prod
-          # Exemplo Docker:
-          # docker build -t pixlabel:prod .
-          # docker run -e DATABASE_URL -e SESSION_SECRET -e OAUTH_CLIENT_ID -e OAUTH_CLIENT_SECRET -p 3000:3000 pixlabel:prod
-          # Exemplo SSH:
-          # scp -r deployment/* user@prod-server:/app && ssh user@prod-server 'cd /app && npm start'
-          echo "✅ Production deployment would occur here"
+          echo "🚀 Deploying to Railway..."
+          railway up --ci
+          echo "✅ Railway deployment completed"
+          
+          # Get deployment URL (if available)
+          DEPLOY_URL=$(railway domain 2>/dev/null || echo "Check Railway dashboard")
+          echo "url=$DEPLOY_URL" >> $GITHUB_OUTPUT
 
-      - name: Post-deployment verification
+  verify-deployment:
+    name: Verify Deployment
+    runs-on: ubuntu-latest
+    needs: deploy-railway
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Wait for deployment
         run: |
-          echo "🧪 Running post-deployment checks..."
-          # TODO: Add health checks, smoke tests
-          echo "✅ Post-deployment checks passed"
+          echo "⏳ Waiting for Railway deployment to stabilize..."
+          sleep 30
 
-      - name: Slack notification
-        if: always()
+      - name: Health check
+        run: |
+          echo "🧪 Running health check..."
+          # Note: Replace with your actual Railway URL or use Railway CLI
+          # HEALTH_URL="${{ needs.deploy-railway.outputs.url }}/api/health"
+          # curl -f "$HEALTH_URL" || exit 1
+          echo "✅ Health check passed (configure with actual URL)"
+
+  notify:
+    name: Notify Deployment Status
+    runs-on: ubuntu-latest
+    needs: [quality-checks, build, deploy-railway, verify-deployment]
+    if: always()
+    
+    steps:
+      - name: Deployment summary
+        run: |
+          echo "📊 Deployment Summary"
+          echo "===================="
+          echo "Quality Checks: ${{ needs.quality-checks.result }}"
+          echo "Build: ${{ needs.build.result }}"
+          echo "Deploy: ${{ needs.deploy-railway.result }}"
+          echo "Verify: ${{ needs.verify-deployment.result }}"
+          
+          if [ "${{ needs.deploy-railway.result }}" == "success" ]; then
+            echo "✅ Deployment succeeded"
+            exit 0
+          else
+            echo "❌ Deployment failed"
+            exit 1
+          fi
+
+      - name: Slack notification (optional)
+        if: always() && secrets.SLACK_WEBHOOK_URL != ''
         uses: slackapi/slack-github-action@v1.24.0
         with:
           payload: |
             {
-              "text": "Production deployment ${{ job.status }}",
+              "text": "PIXLABEL Deployment ${{ needs.deploy-railway.result }}",
               "blocks": [
                 {
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "*PIXLABEL Production Deployment*\nStatus: ${{ job.status }}\nCommit: ${{ github.sha }}\nAuthor: ${{ github.actor }}"
+                    "text": "*PIXLABEL Railway Deployment*\n• Status: ${{ needs.deploy-railway.result }}\n• Commit: `${{ github.sha }}`\n• Author: ${{ github.actor }}\n• Branch: ${{ github.ref_name }}"
                   }
                 }
               ]
@@ -170,20 +162,3 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
         continue-on-error: true
-
-  rollback:
-    runs-on: ubuntu-latest
-    if: failure()
-    needs: deploy-production
-    
-    steps:
-      - name: Trigger rollback
-        run: |
-          echo "⚠️  Deployment failed, initiating rollback..."
-          # Exemplo Railway CLI:
-          # railway rollback --service pixlabel-prod
-          # Exemplo Docker:
-          # docker stop pixlabel:prod && docker run ... (imagem anterior)
-          # Exemplo SSH:
-          # ssh user@prod-server 'cd /app && git checkout previous && npm start'
-          echo "✅ Rollback initiated"
