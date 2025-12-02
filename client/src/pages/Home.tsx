@@ -1,7 +1,7 @@
 import { useIsAuthenticated } from "@/hooks/use-auth";
 import { Link } from "wouter";
 
-export function Home() {
+export default function Home() {
   const { isAuthenticated, user } = useIsAuthenticated();
 
   if (!isAuthenticated) {

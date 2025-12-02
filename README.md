@@ -354,56 +354,164 @@ Para dúvidas ou issues:
 
 ## 🚀 Deploy com Railway
 
-### Deploy Automático Railway (CI/CD)
+### Pré-requisitos
 
-O deploy é feito automaticamente via workflow GitHub Actions:
+1. Conta no Railway: https://railway.app/
+2. Projeto criado no Railway
+3. PostgreSQL provisionado no Railway
 
-1. **Configure o segredo RAILWAY_TOKEN**
-   - No GitHub, acesse: `Settings > Secrets > Actions`
-   - Adicione o segredo `RAILWAY_TOKEN` (pegue no painel Railway > Account > Tokens)
+### Opção 1: Deploy Automático (Recomendado)
 
-2. **Push no branch `main`**
-   - Qualquer push no branch `main` dispara build, testes e deploy Railway.
+#### Via GitHub Actions (CI/CD)
 
-3. **Workflow dedicado**
-   - Arquivo: `.github/workflows/railway.yml`
-   - Comando: `railway up --ci` (sem interação)
+1. **Conectar repositório ao Railway**
+   ```bash
+   # No diretório do projeto
+   railway link
+   ```
 
-#### Deploy manual (opcional)
+2. **Obter Railway Token**
+   - Acesse: https://railway.app/account/tokens
+   - Crie um novo token
+   - Copie o valor
+
+3. **Configurar GitHub Secrets**
+   - Vá para: `Settings > Secrets and variables > Actions`
+   - Adicione `RAILWAY_TOKEN` com o valor copiado
+
+4. **Deploy automático**
+   - Qualquer push em `main` dispara o workflow `.github/workflows/deploy.yml`
+   - Build, testes e deploy executam automaticamente
+
+### Opção 2: Deploy Manual
+
+#### Via Railway CLI
 
 ```bash
+# 1. Instalar Railway CLI
+npm install -g @railway/cli
+
+# 2. Login
+railway login
+
+# 3. Link do projeto
+railway link
+
+# 4. Deploy
 railway up
 ```
 
----
+#### Via Dashboard Railway
 
-Para automação total, não é necessário acessar o painel Railway após configurar o segredo.
+1. Conecte seu repositório GitHub ao Railway
+2. Selecione o branch `main`
+3. Railway detecta automaticamente `railway.toml`
+4. Configure variáveis de ambiente
+5. Deploy acontece automaticamente
 
-### 2. Configurar Variáveis de Ambiente
+### Configuração de Variáveis de Ambiente
 
-- `DATABASE_URL` (PostgreSQL do Railway)
-- `SESSION_SECRET` (string aleatória)
-- `OAUTH_CLIENT_ID`, `OAUTH_CLIENT_SECRET`, `OAUTH_AUTH_URL`, `OAUTH_TOKEN_URL`, `OAUTH_USERINFO_URL`, `OAUTH_CALLBACK_URL` (conforme provider)
+**Obrigatórias:**
+```bash
+DATABASE_URL=postgresql://user:pass@host/db  # Auto-gerado pelo Railway
+SESSION_SECRET=<gere-string-aleatoria-32-chars>
+NODE_ENV=production
+```
 
-### 3. Build & Deploy
+**Opcionais (OAuth):**
+```bash
+OAUTH_PROVIDER_NAME=github
+OAUTH_CLIENT_ID=<seu-client-id>
+OAUTH_CLIENT_SECRET=<seu-client-secret>
+OAUTH_AUTH_URL=https://github.com/login/oauth/authorize
+OAUTH_TOKEN_URL=https://github.com/login/oauth/access_token
+OAUTH_USERINFO_URL=https://api.github.com/user
+OAUTH_CALLBACK_URL=https://<seu-app>.railway.app/auth/callback
+```
 
-- Railway detecta automaticamente o arquivo `railway.toml`
-- Build: `nixpacks` (Node.js)
-- Start: `npm start`
+### Build & Start
 
-### 4. Gerenciar Banco de Dados
+O arquivo `railway.toml` configura:
 
-- Use o painel do Railway para criar e gerenciar o PostgreSQL
-- Copie a `DATABASE_URL` para as variáveis do projeto
+```toml
+[build]
+builder = "nixpacks"
 
-### 5. Monitorar Deploy
+[build.nixpacks]
+buildCommand = "npm install && npm run build"
 
-- Logs e status em https://railway.app/project/<seu-projeto>
-- Health check: `/api/health`
+[deploy]
+startCommand = "npm start"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 5
 
-### 6. Rollback
+[healthcheck]
+path = "/api/health"
+timeout = 10
+interval = 30
+```
 
-- Railway permite rollback para builds anteriores via painel
+### Banco de Dados
+
+1. **Provisionar PostgreSQL**
+   ```bash
+   railway add --plugin postgresql
+   ```
+
+2. **Aplicar migrations**
+   ```bash
+   railway run npm run db:push
+   ```
+
+3. **Verificar conexão**
+   ```bash
+   railway run npm run check
+   ```
+
+### Monitoramento
+
+- **Logs**: `railway logs`
+- **Health Check**: `https://<seu-app>.railway.app/api/health`
+- **Dashboard**: https://railway.app/project/<project-id>
+
+### Troubleshooting
+
+**Build falha:**
+```bash
+# Verificar logs
+railway logs --deployment <deployment-id>
+
+# Rebuild
+railway up --force
+```
+
+**Database não conecta:**
+```bash
+# Verificar DATABASE_URL
+railway variables
+
+# Testar conexão local
+railway run psql $DATABASE_URL
+```
+
+**Aplicação não responde:**
+```bash
+# Verificar health check
+curl https://<seu-app>.railway.app/api/health
+
+# Restart
+railway restart
+```
+
+### Rollback
+
+```bash
+# Via CLI
+railway rollback <deployment-id>
+
+# Via Dashboard
+# Settings > Deployments > Selecionar deploy anterior > Rollback
+```
 
 ---
 

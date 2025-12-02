@@ -1,0 +1,46 @@
+# Railway ignore file - arquivos que não precisam ser enviados para produção
+
+# Development
+.env.local
+.env.development
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+test-results/
+playwright-report/
+coverage/
+*.spec.ts
+*.test.ts
+e2e/
+src/__tests__/
+
+# Documentation
+*.md
+!README.md
+docs/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts (serão reconstruídos)
+node_modules/
+dist/
+
+# Misc
+*.bak
+*.tmp

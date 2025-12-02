@@ -5,7 +5,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { AppSidebar } from "@/components/AppSidebar";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useIsAuthenticated } from "@/hooks/use-auth";
-import { Home } from "@/pages/Home";
+import Home from "@/pages/Home";
 import { EstoqueGeral } from "@/pages/EstoqueGeral";
 import { Pedidos } from "@/pages/Pedidos";
 import { SESI } from "@/pages/SESI";

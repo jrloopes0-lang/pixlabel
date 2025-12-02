@@ -1,5 +1,15 @@
 [build]
 builder = "nixpacks"
 
+[build.nixpacks]
+buildCommand = "npm install && npm run build"
+
 [deploy]
 startCommand = "npm start"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 5
+
+[healthcheck]
+path = "/api/health"
+timeout = 10
+interval = 30

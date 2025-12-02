@@ -2,7 +2,7 @@ import { Card } from "@/components/ui/Card";
 import { useFetch } from "@/hooks/useFetch";
 import { fetchDeltaTrackingNotes } from "@/api";
 
-export function DeltaPage() {
+export default function Delta() {
   const { data } = useFetch("delta", fetchDeltaTrackingNotes);
 
   return (
@@ -22,3 +22,5 @@ export function DeltaPage() {
     </div>
   );
 }
+
+export { Delta as DeltaPage };

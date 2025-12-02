@@ -1,10 +1,10 @@
 import { ReactElement } from "react";
-import { HomePage } from "@/pages/Home";
-import { DashboardPrincipalPage } from "@/pages/Dashboard";
-import { MedicamentosMestresPage } from "@/pages/MedicamentosMestres";
-import { EstoquePage } from "@/pages/Estoque";
+import Home from "@/pages/Home";
+import Dashboard from "@/pages/Dashboard";
+import MedicamentosMestres from "@/pages/MedicamentosMestres";
+import Estoque from "@/pages/Estoque";
 import { PMSPage } from "@/pages/PMS";
-import { DeltaPage } from "@/pages/Delta";
+import Delta from "@/pages/Delta";
 
 export type AppRoute = {
   path: string;
@@ -18,25 +18,25 @@ export const appRoutes: AppRoute[] = [
     path: "/home",
     label: "Home",
     description: "Resumo inicial e atalhos para módulos do CAF.",
-    element: <HomePage />,
+    element: <Home />,
   },
   {
     path: "/dashboard",
     label: "Dashboard Principal",
     description: "Indicadores operacionais e visão executiva.",
-    element: <DashboardPrincipalPage />,
+    element: <Dashboard />,
   },
   {
     path: "/medicamentos-mestres",
     label: "Medicamentos Mestres",
     description: "Base oficial de fármacos e apresentações.",
-    element: <MedicamentosMestresPage />,
+    element: <MedicamentosMestres />,
   },
   {
     path: "/estoque",
     label: "Estoque",
     description: "Entradas, saídas e curva ABC com vencimentos.",
-    element: <EstoquePage />,
+    element: <Estoque />,
   },
   {
     path: "/pms",
@@ -48,7 +48,7 @@ export const appRoutes: AppRoute[] = [
     path: "/delta",
     label: "Delta Tracking",
     description: "Rastreamento de divergências e reconciliações.",
-    element: <DeltaPage />,
+    element: <Delta />,
   },
 ];
 

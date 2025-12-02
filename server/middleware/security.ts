@@ -1,6 +1,5 @@
 import express, { Request, Response, NextFunction } from "express";
 import rateLimit from "express-rate-limit";
-import { ipKeyGenerator } from "express-rate-limit";
 import helmet from "helmet";
 
 /**
@@ -75,8 +74,8 @@ export const dispensationLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 50,
   keyGenerator: (req: Request) => {
-    // Usa o id do usuário se existir, senão usa o helper IPv6 seguro
-    return (req as any).user?.id || ipKeyGenerator(req);
+    // Usa o id do usuário se existir, senão usa IP
+    return (req as any).user?.id || req.ip || "unknown";
   },
   message: "Too many dispensations, please try again later.",
   standardHeaders: true,

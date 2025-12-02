@@ -1,6 +1,6 @@
 import express from "express";
 import session from "express-session";
-import { buildApiRouter } from "./routes";
+import routes from "./routes";
 
 export function createApp() {
   const app = express();
@@ -13,7 +13,7 @@ export function createApp() {
     }),
   );
 
-  app.use("/api", buildApiRouter());
+  app.use("/api", routes);
   app.get("/health", (_req, res) => res.json({ status: "ok" }));
 
   return app;
