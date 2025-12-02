@@ -18,7 +18,7 @@
 
 ### Frontend
 - **Framework**: React 18 + TypeScript + Vite
-- **Roteamento**: wouter (lightweight)
+- **Roteamento**: React Router
 - **UI Components**: shadcn/ui (Radix UI + Tailwind CSS)
 - **Form Management**: react-hook-form + Zod validation
 - **State Management**: TanStack Query (React Query) v5
@@ -30,19 +30,16 @@
 - **Runtime**: Node.js + Express.js (ESM modules)
 - **ORM**: Drizzle ORM com Zod schemas
 - **Database**: PostgreSQL (Neon serverless)
-- **Authentication**: Replit Auth (OIDC) + Passport.js
-- **Session**: connect-pg-simple (PostgreSQL-backed)
+- **Authentication**: Sessão baseada em cookies para ambientes próprios
+- **Session**: express-session (plugável com store externo)
 - **File Upload**: multer + xlsx parsing
 - **Middleware**: Express built-in + custom auth middleware
 
 ### DevOps
 - **Build**: esbuild (backend), Vite (frontend)
 - **Type Checking**: TypeScript
-- **Vite Plugins**: 
-  - @replit/vite-plugin-runtime-error-modal
-  - @replit/vite-plugin-dev-banner
-  - @replit/vite-plugin-cartographer
-- **Environment**: Nix (Replit)
+- **Vite Plugins**: @vitejs/plugin-react
+- **Environment**: Node.js padrão
 
 ---
 
@@ -73,7 +70,7 @@ server/
 ├── storage.ts       # Interface IStorage (CRUD abstrata)
 ├── vite.ts          # Dev server Vite
 └── middleware/
-    └── auth.ts      # Middleware de autenticação Replit OIDC
+    └── auth.ts      # Middleware de autenticação (pluggable OIDC/custom)
 
 shared/
 ├── schema.ts        # Drizzle tables + Zod schemas
@@ -123,7 +120,8 @@ shared/
 
 ### Autenticação
 - `GET /api/auth/status` - Check if logged in (public)
-- `GET /auth/login` - Replit OAuth redirect
+- `GET /auth/login` - Generic OIDC/OAuth2 redirect (issuer/client configured via env vars)
+- `GET /auth/callback` - Handles the OIDC response and exchanges the code for a session
 - `POST /auth/logout` - Logout
 
 ### CAF - Items
@@ -279,22 +277,13 @@ await storage.create(data);
 ## 7. ESTADO ATUAL (Último Commit)
 
 ### ✅ Implementado
-- **CAF Core**: Items, Orders, Units, Suppliers, Import
-- **Authentication**: Replit OIDC login/logout
-- **SESI Module Completo**:
-  - Gestão de pacientes excepcionais (CRUD)
-  - Busca de medicamentos (SESI stock only)
-  - Fluxo de dispensação (2 etapas):
-    - Etapa 1: SelecionarPaciente (busca, seleção)
-    - Etapa 2: DispenserMedicamentos (useFieldArray, add/remove, submit)
-  - FIFO stock deduction (automático via `deductSesiStock()`)
-  - Estoque excepcional independente
+- **CAF Core**: CRUD de itens, unidades, estoque e movimentações com fallback para mocks
+- **Autenticação**: Tela de login com copy genérico para OIDC e backend pronto para sessões via provider configurável
+- **PMS Base**: CRUD e mocks para pacientes, pareceres, evoluções e dispensações
 - **UI/UX**:
-  - Dashboard com KPIs
+  - Dashboard e páginas módulo em React Router
   - Sidebar persistente com navegação
-  - Forms com validação Zod
-  - Toast notifications
-  - Loading states com React Query
+  - Layout com tokens de design e componentes base (cards, tabelas, stat grid)
 
 ### ❌ Removido (Cleanup)
 - Yellow alert bugado "Selecione um paciente" (removed from dispensar)
@@ -421,11 +410,11 @@ npm run dev
 npm run build
 
 # Database operations
-npm run db:push        # Sync schema
-npm run db:studio      # Visualize DB
+npm run db:push        # Sync schema (Postgres/Neon)
 
 # Type checking
-npm run type-check
+npm run check
+npm run test
 ```
 
 ---
@@ -436,14 +425,17 @@ npm run type-check
 DATABASE_URL=postgres://...  # Neon PostgreSQL
 PERPLEXITY_API_KEY=...       # Para IA features (opcional)
 SESSION_SECRET=...            # Session signing
-REPL_ID=...                   # Replit auth
+OIDC_ISSUER=...               # Provedor OIDC genérico
+OIDC_CLIENT_ID=...            # Client ID
+OIDC_CLIENT_SECRET=...        # Client secret
+OIDC_REDIRECT_URI=...         # Callback URL apontando para /auth/callback
 ```
 
 ---
 
 ## 13. CONTATOS & DOCUMENTAÇÃO
 
-- **Replit Docs**: Integrations, Database, Hosting
+- **OIDC/OAuth2**: Documentação do provedor configurado (ex.: Auth0, Keycloak)
 - **React Query**: https://tanstack.com/query/latest
 - **Drizzle ORM**: https://orm.drizzle.team
 - **shadcn/ui**: https://ui.shadcn.com
@@ -451,5 +443,5 @@ REPL_ID=...                   # Replit auth
 
 ---
 
-**Última Atualização**: 27/11/2025  
-**Status**: Em desenvolvimento (Phase 1 completa, Phase 2 planejada)
+**Última Atualização**: 08/02/2025
+**Status**: MVP consolidado com mocks e pronto para plugar OIDC + Postgres

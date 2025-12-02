@@ -60,7 +60,7 @@ Mandatory Functionalities: Automatic alerts (critical stock, validity, rupture),
 **Framework**: React 18 with TypeScript, using Vite.
 **UI Component System**: shadcn/ui (Radix UI + Tailwind CSS) for a utility-first, data-dense interface.
 **State Management**: TanStack Query for server state, react-hook-form with Zod for form state.
-**Routing**: wouter for lightweight client-side routing.
+**Routing**: React Router for client-side navigation.
 **Design Principles**: Professional healthcare aesthetic, high information density, persistent sidebar (260px), mobile-first responsive design (iPhone 16 / iOS Safari optimized), minimal clicks.
 **Mobile Optimization**: Responsive breakpoints, mobile drawer navigation, accessible touch targets, card-based tables on mobile, collapsible filters.
 **Global Search**: CTRL+K command palette for quick navigation across all pages.
@@ -75,10 +75,10 @@ Mandatory Functionalities: Automatic alerts (critical stock, validity, rupture),
 
 ### Authentication & Authorization
 
-**Provider**: Replit Auth (OpenID Connect) with Passport.js.
-**Session Management**: PostgreSQL-backed sessions (connect-pg-simple), 7-day TTL, secure HTTP-only cookies.
-**User Model**: OIDC subject claims, storing email, name, profile, role (`administrator` | `operator`).
-**Authorization**: Role-based access control with `isAuthenticated` middleware.
+**Provider**: Pluggable OIDC or custom provider (current scaffold uses cookie sessions for local/dev).
+**Session Management**: `express-session` with optional PostgreSQL store (connect-pg-simple), secure HTTP-only cookies.
+**User Model**: Email, name, profile, role (`administrator` | `operator`).
+**Authorization**: Role-based access control with dedicated middleware.
 
 ### Data Storage
 
@@ -116,7 +116,7 @@ The PMS module provides comprehensive patient medication management:
 
 **Database Service**: Neon serverless PostgreSQL (requires `DATABASE_URL`).
 
-**Authentication Service**: Replit OIDC provider (requires `REPL_ID`, `ISSUER_URL`, `SESSION_SECRET`).
+**Authentication Service**: Pluggable OIDC provider (configure issuer/client env vars as needed).
 
 **AI Integration**: Perplexity API for medication queries and clinical information.
 
@@ -132,4 +132,4 @@ The PMS module provides comprehensive patient medication management:
 
 **Build Tools**: Vite, esbuild, TypeScript compiler, Tailwind CSS with PostCSS.
 
-**Development Tools (Replit-specific)**: `@replit/vite-plugin-runtime-error-modal`, `@replit/vite-plugin-cartographer`, `@replit/vite-plugin-dev-banner`.
+**Development Tools**: Standard Vite/TypeScript toolchain.
