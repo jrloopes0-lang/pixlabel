@@ -73,10 +73,6 @@ export const createLimiter = rateLimit({
 export const dispensationLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 50,
-  keyGenerator: (req: Request) => {
-    // Usa o id do usuário se existir, senão usa IP
-    return (req as any).user?.id || req.ip || "unknown";
-  },
   message: "Too many dispensations, please try again later.",
   standardHeaders: true,
   legacyHeaders: false,

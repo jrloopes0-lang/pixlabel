@@ -37,13 +37,15 @@ async function startDevServer() {
   app.use(sanitizationMiddleware); // Sanitize inputs
 
   // ============================================
-  // RATE LIMITING
+  // RATE LIMITING (Disabled in development)
   // ============================================
-  app.use("/api", apiLimiter); // General API rate limit (100/15min)
-  app.use("/auth/login", loginLimiter); // Strict login limit (5/15min)
-  app.use("/auth/callback", oauthLimiter); // OAuth callback limit (10/5min)
-  app.use("/api/items", createLimiter); // Create limit (10/hour)
-  app.use("/api/sesi/dispensacoes", dispensationLimiter); // Dispensation limit (50/hour per user)
+  if (process.env.NODE_ENV === "production") {
+    app.use("/api", apiLimiter); // General API rate limit (100/15min)
+    app.use("/auth/login", loginLimiter); // Strict login limit (5/15min)
+    app.use("/auth/callback", oauthLimiter); // OAuth callback limit (10/5min)
+    app.use("/api/items", createLimiter); // Create limit (10/hour)
+    app.use("/api/sesi/dispensacoes", dispensationLimiter); // Dispensation limit (50/hour per user)
+  }
   
   // ============================================
   // SESSION & AUTHENTICATION
@@ -101,28 +103,24 @@ async function startDevServer() {
     done(null, user);
   });
 
+  // Auth routes (public) - BEFORE Vite
+  app.use("/auth", authRoutes);
+
+  // API routes - BEFORE Vite
+  app.use("/api", routes);
+
   const vite = await createViteServer({
-    root: process.cwd(),
     server: {
       middlewareMode: true,
-      hmr:
-        process.env.NODE_ENV === "production"
-          ? false
-          : {
-              port: 5173,
-              protocol: "ws",
-            },
+      hmr: {
+        port: 5173,
+        protocol: "ws",
+      },
     },
   });
 
-  // Vite middleware (serve React + HMR)
+  // Vite middleware (serve React + HMR) - AFTER API routes
   app.use(vite.middlewares);
-
-  // Auth routes (public)
-  app.use("/auth", authRoutes);
-
-  // API routes
-  app.use("/api", routes);
 
   // 404 handler
   app.use((_req, res) => {
