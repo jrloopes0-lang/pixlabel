@@ -42,6 +42,11 @@
 - **Vite Plugins**: @vitejs/plugin-react
 - **Environment**: Node.js padrão
 
+**Rotina de verificação rápida (evita erros de módulo ausente):**
+1. Instale dependências: `npm install`
+2. Rode a verificação completa: `npm run verify` (executa type-check, testes Vitest e build client/server)
+3. Para apenas validar tipagem rapidamente, use `npm run check`
+
 ---
 
 ## 3. ARQUITETURA DO SISTEMA
