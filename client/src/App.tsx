@@ -62,15 +62,12 @@ export function App() {
         {/* Public routes */}
         <Route path="/login" component={Login} />
 
-        {/* Authenticated routes */}
+        {/* Home route - Public */}
         <Route path="/">
-          {() => (
-            <AuthenticatedLayout>
-              <Home />
-            </AuthenticatedLayout>
-          )}
+          <Home />
         </Route>
 
+        {/* Protected routes */}
         <Route path="/estoque">
           {() => (
             <AuthenticatedLayout>

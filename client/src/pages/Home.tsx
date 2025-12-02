@@ -1,65 +1,42 @@
-import { useIsAuthenticated } from "@/hooks/use-auth";
-import { Link } from "wouter";
-
 export default function Home() {
-  const { isAuthenticated, user } = useIsAuthenticated();
-
-  if (!isAuthenticated) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">PIXLABEL</h1>
-          <p className="text-xl text-gray-600 mb-8">Sistema de Gestão Farmacêutica para Saúde Pública</p>
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="text-center max-w-2xl px-4">
+        <h1 className="text-5xl font-bold text-gray-900 mb-4">PIXLABEL</h1>
+        <p className="text-xl text-gray-600 mb-8">Sistema de Gestão Farmacêutica para Saúde Pública</p>
+        
+        <div className="bg-white rounded-lg shadow-lg p-8 mb-6">
+          <h2 className="text-2xl font-semibold text-gray-800 mb-4">Bem-vindo ao Sistema</h2>
+          <p className="text-gray-600 mb-6">
+            Gerencie estoque de medicamentos, pedidos e dispensações SESI de forma integrada.
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="p-4 border rounded">
+              <h3 className="font-semibold text-gray-800">Estoque</h3>
+              <p className="text-sm text-gray-600">Gestão completa</p>
+            </div>
+            <div className="p-4 border rounded">
+              <h3 className="font-semibold text-gray-800">SESI</h3>
+              <p className="text-sm text-gray-600">Pacientes excepcionais</p>
+            </div>
+            <div className="p-4 border rounded">
+              <h3 className="font-semibold text-gray-800">Pedidos</h3>
+              <p className="text-sm text-gray-600">Tracking completo</p>
+            </div>
+          </div>
+          
           <a
-            href="/auth/login"
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
+            href="/login"
+            className="inline-block px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-lg"
           >
-            Entrar
+            Entrar no Sistema
           </a>
         </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold text-gray-900">Estoque Geral</h3>
-          <p className="text-gray-600 mt-2">Gerencie medicamentos e pedidos</p>
-          <Link href="/estoque">
-            <a className="mt-4 inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-              Acessar
-            </a>
-          </Link>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold text-gray-900">SESI</h3>
-          <p className="text-gray-600 mt-2">Pacientes e dispensações excepcionais</p>
-          <Link href="/sesi">
-            <a className="mt-4 inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-              Acessar
-            </a>
-          </Link>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold text-gray-900">Pedidos</h3>
-          <p className="text-gray-600 mt-2">Acompanhe status de pedidos</p>
-          <Link href="/pedidos">
-            <a className="mt-4 inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-              Acessar
-            </a>
-          </Link>
-        </div>
-      </div>
-
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h2 className="text-xl font-semibold mb-4">Bem-vindo, {user?.firstName}!</h2>
-        <p className="text-gray-600">Você está logado como: <strong>{user?.role}</strong></p>
+        
+        <p className="text-sm text-gray-500">
+          Sistema desenvolvido para Campo Alegre - CE
+        </p>
       </div>
     </div>
   );
