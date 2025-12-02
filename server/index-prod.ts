@@ -5,7 +5,7 @@ import express from "express";
 
 const app = createApp();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const publicDir = path.join(__dirname, "../dist/public");
+const publicDir = path.join(__dirname, "public");
 
 app.use(express.static(publicDir));
 app.get("*", (_req, res) => res.sendFile(path.join(publicDir, "index.html")));
