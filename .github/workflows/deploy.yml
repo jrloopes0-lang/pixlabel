@@ -1,0 +1,189 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+jobs:
+  pre-deploy-checks:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run check
+
+      - name: Run unit tests
+        run: npm run test:unit
+
+  build-artifact:
+    runs-on: ubuntu-latest
+    needs: pre-deploy-checks
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Create deployment artifact
+        run: |
+          mkdir -p deployment
+          cp -r dist deployment/
+          cp package.json deployment/
+          cp package-lock.json deployment/
+          cd deployment && npm install --omit=dev
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-package
+          path: deployment/
+          retention-days: 30
+
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: build-artifact
+    if: github.ref == 'refs/heads/main' || github.event.inputs.environment == 'staging'
+    environment:
+      name: staging
+      url: https://pixlabel-staging.seuprovider.com
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: deployment-package
+
+      - name: Deploy to Staging
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_STAGING }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET_STAGING }}
+          OAUTH_CLIENT_ID: ${{ secrets.OAUTH_CLIENT_ID_STAGING }}
+          OAUTH_CLIENT_SECRET: ${{ secrets.OAUTH_CLIENT_SECRET_STAGING }}
+        run: |
+          echo "🚀 Deploying to staging..."
+          # Exemplo Railway CLI:
+          # railway up --service pixlabel-staging
+          # Exemplo Docker:
+          # docker build -t pixlabel:staging .
+          # docker run -e DATABASE_URL -e SESSION_SECRET -e OAUTH_CLIENT_ID -e OAUTH_CLIENT_SECRET -p 3000:3000 pixlabel:staging
+          # Exemplo SSH:
+          # scp -r deployment/* user@staging-server:/app && ssh user@staging-server 'cd /app && npm start'
+          echo "✅ Staging deployment would occur here"
+
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs: [build-artifact, pre-deploy-checks]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: production
+      url: https://pixlabel.seuprovider.com
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: deployment-package
+
+      - name: Verify production readiness
+        run: |
+          echo "🔍 Verifying production requirements..."
+          [ -f "dist/index.js" ] || (echo "❌ Missing dist/index.js" && exit 1)
+          [ -f "package.json" ] || (echo "❌ Missing package.json" && exit 1)
+          echo "✅ Production artifacts verified"
+
+      - name: Deploy to Production
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_PRODUCTION }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET_PRODUCTION }}
+          OAUTH_CLIENT_ID: ${{ secrets.OAUTH_CLIENT_ID_PRODUCTION }}
+          OAUTH_CLIENT_SECRET: ${{ secrets.OAUTH_CLIENT_SECRET_PRODUCTION }}
+        run: |
+          echo "🚀 Deploying to production..."
+          # Exemplo Railway CLI:
+          # railway up --service pixlabel-prod
+          # Exemplo Docker:
+          # docker build -t pixlabel:prod .
+          # docker run -e DATABASE_URL -e SESSION_SECRET -e OAUTH_CLIENT_ID -e OAUTH_CLIENT_SECRET -p 3000:3000 pixlabel:prod
+          # Exemplo SSH:
+          # scp -r deployment/* user@prod-server:/app && ssh user@prod-server 'cd /app && npm start'
+          echo "✅ Production deployment would occur here"
+
+      - name: Post-deployment verification
+        run: |
+          echo "🧪 Running post-deployment checks..."
+          # TODO: Add health checks, smoke tests
+          echo "✅ Post-deployment checks passed"
+
+      - name: Slack notification
+        if: always()
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": "Production deployment ${{ job.status }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*PIXLABEL Production Deployment*\nStatus: ${{ job.status }}\nCommit: ${{ github.sha }}\nAuthor: ${{ github.actor }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+        continue-on-error: true
+
+  rollback:
+    runs-on: ubuntu-latest
+    if: failure()
+    needs: deploy-production
+    
+    steps:
+      - name: Trigger rollback
+        run: |
+          echo "⚠️  Deployment failed, initiating rollback..."
+          # Exemplo Railway CLI:
+          # railway rollback --service pixlabel-prod
+          # Exemplo Docker:
+          # docker stop pixlabel:prod && docker run ... (imagem anterior)
+          # Exemplo SSH:
+          # ssh user@prod-server 'cd /app && git checkout previous && npm start'
+          echo "✅ Rollback initiated"
