@@ -1,62 +1,58 @@
+
 import express from "express";
-import fs from "fs/promises";
-import path from "path";
 import { createServer as createViteServer } from "vite";
 import routes from "./routes";
 
 async function startDevServer() {
   const app = express();
-  const host = process.env.HOST || "0.0.0.0";
-  const port = Number(process.env.PORT) || 3000;
-  const hmrHost = process.env.HMR_HOST || host;
-  const hmrPort = Number(process.env.HMR_PORT) || 5173;
-  const clientRoot = path.resolve(process.cwd(), "client");
 
-  try {
-    const vite = await createViteServer({
-      appType: "custom",
-      root: clientRoot,
-      server: {
-        host: true,
-        middlewareMode: true,
-        hmr: {
-          host: hmrHost,
-          port: hmrPort,
-        },
-      },
+  // Middlewares
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+
+  const vite = await createViteServer({
+    root: process.cwd(),
+    server: {
+      middlewareMode: "html",
+      hmr:
+        process.env.NODE_ENV === "production"
+          ? false
+          : {
+              port: 5173,
+              protocol: "ws",
+            },
+    },
+  });
+
+  // Vite middleware (serve React + HMR)
+  app.use(vite.middlewares);
+
+  // API routes
+  app.use("/api", routes);
+
+  // 404 handler
+  app.use((_req, res) => {
+    res.status(404).json({ error: "Not found" });
+  });
+
+  // Error handler
+  app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    console.error("❌ Error:", err);
+    res.status(err.status || 500).json({
+      error: err.message || "Internal server error",
+      status: "error",
     });
+  });
 
-    app.use(express.json());
-    app.use("/api", routes);
+  const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 
-    app.use(vite.middlewares);
-
-    app.use("*", async (req, res, next) => {
-      try {
-        const url = req.originalUrl;
-        const templatePath = path.join(clientRoot, "index.html");
-        const template = await fs.readFile(templatePath, "utf-8");
-        const html = await vite.transformIndexHtml(url, template);
-        res
-          .status(200)
-          .set({ "Content-Type": "text/html" })
-          .end(html);
-      } catch (error) {
-        vite.ssrFixStacktrace(error as Error);
-        next(error);
-      }
-    });
-
-    app.listen(port, host, () => {
-      console.log("==========================================");
-      console.log(`🚀 Dev Server ON → http://${host}:${port}`);
-      console.log(`🔥 HMR (Vite) → ws://${hmrHost}:${hmrPort}`);
-      console.log(`🩺 Health → http://${host}:${port}/api/health`);
-      console.log("==========================================");
-    });
-  } catch (error) {
-    console.error("❌ Erro ao iniciar servidor dev:", error);
-  }
+  app.listen(PORT, () => {
+    console.log("=====================================");
+    console.log(`🚀 Dev Server → http://localhost:${PORT}`);
+    console.log(`🔥 Vite HMR → ws://localhost:5173`);
+    console.log(`🧺 Health → http://localhost:${PORT}/api/health`);
+    console.log("=====================================");
+  });
 }
 
 startDevServer();

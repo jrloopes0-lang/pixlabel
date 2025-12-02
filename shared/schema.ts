@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { integer, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
 
 export const unidadesSaude = pgTable("unidades_saude", {
@@ -89,3 +90,44 @@ export type PmsEvolucao = typeof pmsEvolucoes.$inferSelect;
 export type PmsParecer = typeof pmsPareceres.$inferSelect;
 export type PmsDispensacao = typeof pmsDispensacoes.$inferSelect;
 export type DeltaPendencia = typeof deltaPendencias.$inferSelect;
+=======
+import { pgTable, text, uuid, timestamp, integer, decimal, enum as pgEnum, uniqueIndex, index } from "drizzle-orm/pg-core";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
+import { z } from "zod";
+
+// ============================================
+// ENUMS
+// ============================================
+
+export const roleEnum = pgEnum("role", ["admin", "operator"]);
+export const orderStatusEnum = pgEnum("order_status", [
+  "draft",
+  "generated",
+  "sent",
+  "authorized",
+  "committed",
+  "received",
+]);
+
+// ...schema moderno e tipado...
+import { pgTable, text, uuid, timestamp, integer, decimal, enum as pgEnum, uniqueIndex, index } from "drizzle-orm/pg-core";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
+import { z } from "zod";
+
+// Enums
+export const roleEnum = pgEnum("role", ["admin", "operator"]);
+export const orderStatusEnum = pgEnum("order_status", ["draft", "generated", "sent", "authorized", "committed", "received"]);
+export const auditActionEnum = pgEnum("audit_action", ["create", "update", "delete", "dispensar", "import", "login", "logout"]);
+
+// Tabelas principais (users, units, suppliers, items, orders, orderItems, importHistory, auditLogs)
+// ...código igual ao modelo moderno...
+
+// SESI tables (sesiPatients, sesiStock, sesiDispensations)
+// ...código igual ao modelo moderno...
+
+// Zod schemas
+// ...código igual ao modelo moderno...
+
+// Types
+// ...código igual ao modelo moderno...
+    role: roleEnum("role").notNull().default("operator"),
