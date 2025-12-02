@@ -63,7 +63,8 @@ router.get("/login", (req: Request, res: Response, next: NextFunction) => {
       (req.session as any).userId = saved.id;
       (req as any).user = saved;
     }
-    res.json({ status: "success", message: "Dev login - session created", user: saved || devUser });
+    // Redireciona para a Home após login de desenvolvimento
+    res.redirect("/");
   })().catch((err) => {
     console.error(err);
     res.status(500).json({ status: "error", error: "Dev login failed" });

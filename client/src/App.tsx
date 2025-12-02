@@ -69,51 +69,27 @@ export function App() {
 
         {/* Protected routes */}
         <Route path="/estoque">
-          {() => (
-            <AuthenticatedLayout>
-              <EstoqueGeral />
-            </AuthenticatedLayout>
-          )}
+          <EstoqueGeral />
         </Route>
 
         <Route path="/pedidos">
-          {() => (
-            <AuthenticatedLayout>
-              <Pedidos />
-            </AuthenticatedLayout>
-          )}
+          <Pedidos />
         </Route>
 
         <Route path="/sesi">
-          {() => (
-            <AuthenticatedLayout>
-              <SESI />
-            </AuthenticatedLayout>
-          )}
+          <SESI />
         </Route>
 
         <Route path="/sesi/pacientes">
-          {() => (
-            <AuthenticatedLayout>
-              <SESIPacientes />
-            </AuthenticatedLayout>
-          )}
+          <SESIPacientes />
         </Route>
 
         <Route path="/sesi/dispensar">
-          {() => (
-            <AuthenticatedLayout>
-              <SESIDispensar />
-            </AuthenticatedLayout>
-          )}
+          <SESIDispensar />
         </Route>
 
         <Route path="/sesi/estoque">
-          {() => (
-            <AuthenticatedLayout>
-              <SESIEstoque />
-            </AuthenticatedLayout>
-          )}
+          <SESIEstoque />
         </Route>
       </Router>
     </QueryClientProvider>
