@@ -20,8 +20,10 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U postgres" --health-interval 10s --health-timeout 5s --health-retries 5
     env:
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/pixellab
-      SESSION_SECRET: ci-session-secret
+      DATABASE_URL: ${{ secrets.DATABASE_URL_PRODUCTION != '' && secrets.DATABASE_URL_PRODUCTION || 'postgres://postgres:postgres@localhost:5432/pixellab' }}
+      SESSION_SECRET: ${{ secrets.SESSION_SECRET_PRODUCTION != '' && secrets.SESSION_SECRET_PRODUCTION || 'ci-session-secret' }}
+      OAUTH_CLIENT_ID: ${{ secrets.OAUTH_CLIENT_ID_PRODUCTION }}
+      OAUTH_CLIENT_SECRET: ${{ secrets.OAUTH_CLIENT_SECRET_PRODUCTION }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -47,8 +49,10 @@ jobs:
       - name: Smoke test server start
         env:
           PORT: 4173
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/pixellab
-          SESSION_SECRET: ci-session-secret
+          DATABASE_URL: ${{ secrets.DATABASE_URL_PRODUCTION != '' && secrets.DATABASE_URL_PRODUCTION || 'postgres://postgres:postgres@localhost:5432/pixellab' }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET_PRODUCTION != '' && secrets.SESSION_SECRET_PRODUCTION || 'ci-session-secret' }}
+          OAUTH_CLIENT_ID: ${{ secrets.OAUTH_CLIENT_ID_PRODUCTION }}
+          OAUTH_CLIENT_SECRET: ${{ secrets.OAUTH_CLIENT_SECRET_PRODUCTION }}
         run: |
           npm start &
           SERVER_PID=$!
