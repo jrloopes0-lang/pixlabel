@@ -84,6 +84,13 @@ export function App() {
       <Router>
         {/* Public routes */}
         <Route path="/login" component={Login} />
+        <Route path="/auth/login">
+          {() => {
+            // Redirect /auth/login to /login
+            window.location.href = "/login";
+            return null;
+          }}
+        </Route>
 
         {/* Home route - Public */}
         <Route path="/">
