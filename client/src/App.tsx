@@ -6,6 +6,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useIsAuthenticated } from "@/hooks/use-auth";
 import Home from "@/pages/Home";
+import HomeCommandCenter from "@/pages/HomeCommandCenter";
 import { EstoqueGeral } from "@/pages/EstoqueGeral";
 import { Pedidos } from "@/pages/Pedidos";
 import { SESI } from "@/pages/SESI";
@@ -64,6 +65,11 @@ export function App() {
 
         {/* Home route - Public */}
         <Route path="/">
+          <HomeCommandCenter />
+        </Route>
+        
+        {/* Old home (for reference) */}
+        <Route path="/home-old">
           <Home />
         </Route>
 
