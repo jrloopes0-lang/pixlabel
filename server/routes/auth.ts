@@ -182,6 +182,25 @@ router.get("/logout", async (req: Request, res: Response) => {
 router.get("/status", async (req: Request, res: Response) => {
   try {
     const user = (req as any).user;
+    
+    // Check for demo token (for testing without OAuth)
+    const demoToken = req.headers["x-demo-token"];
+    if (!user && demoToken === "demo-pixlabel-test") {
+      const demoUser = {
+        id: "demo-user-123",
+        email: "demo@pixlabel.test",
+        firstName: "Demo",
+        lastName: "User",
+        role: "admin" as const,
+      };
+      return res.json({
+        status: "success",
+        data: {
+          isAuthenticated: true,
+          user: demoUser,
+        },
+      });
+    }
 
     if (!user) {
       return res.json({
@@ -207,6 +226,44 @@ router.get("/status", async (req: Request, res: Response) => {
       },
     });
   } catch (err: any) {
+    res.status(500).json({ status: "error", error: err.message });
+  }
+});
+
+/**
+ * GET /auth/demo-login
+ * Demo login for testing (development only)
+ */
+router.get("/demo-login", async (req: Request, res: Response) => {
+  if (process.env.NODE_ENV === "production" && !process.env.ALLOW_DEMO_LOGIN) {
+    return res.status(403).json({ status: "error", error: "Demo login not allowed" });
+  }
+
+  try {
+    const demoUser = {
+      email: "demo@pixlabel.test",
+      firstName: "Demo",
+      lastName: "User",
+      role: "admin" as const,
+    };
+
+    const saved = await saveOrUpdateUser(demoUser);
+
+    if (saved && req.session) {
+      (req.session as any).userId = saved.id;
+      (req as any).user = saved;
+    }
+
+    // Redireciona com token no header
+    res.setHeader("X-Demo-Token", "demo-pixlabel-test");
+    res.json({ 
+      status: "success", 
+      message: "Demo login successful",
+      user: saved,
+      demoToken: "demo-pixlabel-test"
+    });
+  } catch (err: any) {
+    console.error(err);
     res.status(500).json({ status: "error", error: err.message });
   }
 });

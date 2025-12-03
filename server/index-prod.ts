@@ -34,6 +34,31 @@ app.get("/api/health", (_req, res) => {
   });
 });
 
+// Debug endpoint - shows diagnostic info
+app.get("/api/debug", (_req, res) => {
+  const info = {
+    status: "ok",
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV,
+    node_version: process.version,
+    platform: process.platform,
+    uptime: process.uptime(),
+    memory: {
+      heapUsed: `${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`,
+      heapTotal: `${Math.round(process.memoryUsage().heapTotal / 1024 / 1024)}MB`,
+    },
+    directories: {
+      __dirname,
+      cwd: process.cwd(),
+      publicDir,
+      publicDirExists: existsSync(publicDir),
+    },
+    port: process.env.PORT || "3000",
+    host: process.env.HOST || "0.0.0.0",
+  };
+  res.json(info);
+});
+
 // API routes
 app.use("/api", routes);
 
@@ -46,14 +71,23 @@ const publicDir = (() => {
     path.resolve(process.cwd(), "dist/public"),
   ];
   
+  console.log("\n🔍 Looking for public directory...");
+  console.log(`   Current __dirname: ${__dirname}`);
+  console.log(`   Current cwd: ${process.cwd()}\n`);
+  
   for (const dir of possiblePaths) {
     try {
-      if (existsSync(dir) && statSync(dir).isDirectory()) {
+      const exists = existsSync(dir);
+      const isDir = exists && statSync(dir).isDirectory();
+      
+      if (isDir) {
         console.log(`✅ Found public directory: ${dir}`);
         return dir;
+      } else {
+        console.log(`❌ Not found: ${dir} (exists: ${exists}, isDir: ${isDir})`);
       }
-    } catch (e) {
-      // Continue to next path
+    } catch (e: any) {
+      console.log(`❌ Error checking ${dir}: ${e.message}`);
     }
   }
   
