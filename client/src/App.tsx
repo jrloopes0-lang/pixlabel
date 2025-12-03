@@ -90,29 +90,41 @@ export function App() {
           <Home />
         </Route>
 
-        {/* Protected routes */}
+        {/* Protected routes with layout */}
         <Route path="/estoque">
-          <EstoqueGeral />
+          <AuthenticatedLayout>
+            <EstoqueGeral />
+          </AuthenticatedLayout>
         </Route>
 
         <Route path="/pedidos">
-          <Pedidos />
+          <AuthenticatedLayout>
+            <Pedidos />
+          </AuthenticatedLayout>
         </Route>
 
         <Route path="/sesi">
-          <SESI />
+          <AuthenticatedLayout>
+            <SESI />
+          </AuthenticatedLayout>
         </Route>
 
         <Route path="/sesi/pacientes">
-          <SESIPacientes />
+          <AuthenticatedLayout>
+            <SESIPacientes />
+          </AuthenticatedLayout>
         </Route>
 
         <Route path="/sesi/dispensar">
-          <SESIDispensar />
+          <AuthenticatedLayout>
+            <SESIDispensar />
+          </AuthenticatedLayout>
         </Route>
 
         <Route path="/sesi/estoque">
-          <SESIEstoque />
+          <AuthenticatedLayout>
+            <SESIEstoque />
+          </AuthenticatedLayout>
         </Route>
       </Router>
     </QueryClientProvider>
