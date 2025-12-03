@@ -13,6 +13,14 @@ const __dirname = path.dirname(__filename);
 // Create Express app
 const app = express();
 
+// Middleware for debugging (log all requests)
+if (process.env.DEBUG_REQUESTS === "true") {
+  app.use((req, _res, next) => {
+    console.log(`📨 ${req.method} ${req.path}`);
+    next();
+  });
+}
+
 // Middleware
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
@@ -65,21 +73,48 @@ app.use(express.static(publicDir, {
 app.get("*", (req, res) => {
   // Don't serve HTML for actual files
   if (path.extname(req.path)) {
+    console.warn(`📁 File not found: ${req.path}`);
     return res.status(404).send("Not found");
   }
   
   const indexPath = path.join(publicDir, "index.html");
+  
+  // Check if file exists before trying to send
+  if (!existsSync(indexPath)) {
+    console.error(`❌ index.html not found at: ${indexPath}`);
+    console.error(`📂 publicDir contents:`, existsSync(publicDir) ? "exists" : "MISSING");
+    return res.status(500).json({ 
+      error: "Application index not found",
+      path: indexPath,
+      publicDirExists: existsSync(publicDir)
+    });
+  }
+  
   res.sendFile(indexPath, (err) => {
     if (err) {
-      console.error(`❌ Error serving ${indexPath}:`, err.message);
+      console.error(`❌ Error serving index.html:`, err.message);
       res.status(500).json({ error: "Failed to serve application" });
     }
   });
 });
 
+// API error handler (before 404 fallback)
+app.use("/api", (err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error("❌ API Error:", {
+    message: err.message,
+    stack: err.stack,
+    name: err.name,
+  });
+  res.status(err.status || 500).json({ 
+    status: "error",
+    error: err.message || "Internal server error",
+    ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
+  });
+});
+
 // Global error handler
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error("❌ Unhandled error:", {
+  console.error("❌ Global Error:", {
     message: err.message,
     stack: err.stack,
     name: err.name,
@@ -105,15 +140,32 @@ function isValidPort(port: number): boolean {
 
 // Start server
 const server = app.listen(PORT, HOST, () => {
+  const diagnostics = {
+    "Server Status": "✅ STARTED",
+    "URL": `http://${HOST}:${PORT}`,
+    "Environment": process.env.NODE_ENV || "production",
+    "Port": PORT,
+    "Host": HOST,
+    "Static Files": publicDir,
+    "Node Version": process.version,
+    "Memory": `${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`,
+    "Database": process.env.DATABASE_URL ? "🔗 Connected" : "💾 In-Memory (Dev Mode)",
+  };
+  
   console.log(`
 ╔════════════════════════════════════════════╗
 ║  ✅ PIXLABEL Production Server Started    ║
 ╚════════════════════════════════════════════╝
-
-📍 URL: http://${HOST}:${PORT}
-🌍 Environment: ${process.env.NODE_ENV || "production"}
-📂 Static files: ${publicDir}
-🏥 Health check: /api/health
+  `);
+  
+  Object.entries(diagnostics).forEach(([key, value]) => {
+    console.log(`${key}: ${value}`);
+  });
+  
+  console.log(`
+🏥 Health Check: GET http://${HOST}:${PORT}/api/health
+📊 API Routes: /api/*
+📁 Static Serving: ${publicDir}
   `);
 });
 
