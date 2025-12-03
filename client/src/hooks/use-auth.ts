@@ -22,10 +22,16 @@ export function useAuth() {
         credentials: "include",
         headers,
       });
+      
+      if (!response.ok) {
+        throw new Error(`Auth status check failed: ${response.statusText}`);
+      }
+      
       const json = await response.json();
       return json.data;
     },
-    retry: false,
+    retry: 1,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 

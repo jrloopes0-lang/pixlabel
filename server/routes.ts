@@ -499,16 +499,23 @@ router.post("/sesi/dispensacoes", async (req, res) => {
       }
     }
 
-    // Create dispensation record
-    const [dispensation] = await db
-      .insert(sesiDispensations)
-      .values({
-        patientId,
-        medicationId: medicamentos[0].medicationId, // TODO: Handle multiple medications
-        quantity: medicamentos[0].quantity,
-        batchNumber: medicamentos[0].batchNumber || null,
-      })
-      .returning();
+    // Create dispensation records for each medication
+    const dispensationRecords = await Promise.all(
+      deductedItems.map(item =>
+        db
+          .insert(sesiDispensations)
+          .values({
+            patientId,
+            medicationId: item.medicationId,
+            quantity: item.quantityDeducted,
+            batchNumber: item.batchNumber || null,
+            dispensedBy: userId,
+          })
+          .returning()
+      )
+    );
+    
+    const dispensation = dispensationRecords[0]?.[0];
 
     // Log to audit logs (LGPD compliance)
     const userId = (req as any).user?.id || "anonymous";
@@ -528,7 +535,13 @@ router.post("/sesi/dispensacoes", async (req, res) => {
       },
     });
   } catch (err: any) {
-    res.status(400).json({ error: err.message, status: "error" });
+    console.error("❌ Dispensation Error:", err);
+    const statusCode = err.message?.includes("not found") ? 404 : 400;
+    res.status(statusCode).json({ 
+      status: "error",
+      error: err.message || "Erro ao processar dispensação",
+      timestamp: new Date().toISOString()
+    });
   }
 });
 

@@ -48,8 +48,14 @@ export function requireRole(role: "admin" | "operator" | "all") {
 // Middleware para logar requisições em auditLogs
 export function auditLog(action: string, entityType: string) {
   return async (req: Request, res: Response, next: NextFunction) => {
-    // TODO: Log to auditLogs table when auth is implemented
-    // For now, just pass through
+    // Captura informações da requisição para auditoria
+    const userId = req.user?.id || "anonymous";
+    const timestamp = new Date().toISOString();
+    
+    // Log será enviado para auditLogs via route handlers
+    // (implementado individualmente em cada rota crítica)
+    console.log(`[AUDIT] ${timestamp} | User: ${userId} | Action: ${action} | Entity: ${entityType}`);
+    
     next();
   };
 }
