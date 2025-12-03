@@ -1,19 +1,48 @@
+import { useIsAuthenticated } from "@/hooks/use-auth";
+import { useLocation } from "wouter";
+import { useEffect } from "react";
+
 export default function Home() {
+  const { isAuthenticated, isLoading } = useIsAuthenticated();
+  const [, setLocation] = useLocation();
+
+  // If already authenticated, redirect to dashboard
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      console.log("[Home] User authenticated, redirecting to /estoque");
+      setLocation("/estoque");
+    }
+  }, [isAuthenticated, isLoading, setLocation]);
+
+  // Show loading while checking auth
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 via-blue-50/30 to-indigo-50/50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-blue-50/30 to-indigo-50/50 flex items-center justify-center px-4 py-16">
       <div className="max-w-6xl w-full">
         {/* Hero Header */}
-        <div className="text-center mb-16 space-y-6">
-          <h1 className="text-6xl md:text-7xl font-bold tracking-tight">
-            <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
-              PixelLab
-            </span>
-          </h1>
+        <div className="text-center mb-16 space-y-6 animate-fade-in">
+          <div className="inline-block p-4 bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg mb-6">
+            <h1 className="text-6xl md:text-7xl font-bold tracking-tight">
+              <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                PixelLab
+              </span>
+            </h1>
+          </div>
           <p className="text-xl md:text-2xl text-gray-600 font-medium tracking-wide max-w-3xl mx-auto leading-relaxed">
             Gestão Farmacêutica Inteligente para Saúde Pública
           </p>
           <p className="text-base text-gray-500 max-w-2xl mx-auto leading-relaxed">
-            Explore os módulos do sistema e visualize informações essenciais de forma integrada e simplificada
+            Plataforma moderna para controle de estoque, gestão de pedidos e dispensação de medicamentos
           </p>
         </div>
 

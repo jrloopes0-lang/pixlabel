@@ -3,3 +3,11 @@ node_modules
 server/public
 vite.config.ts.*
 *.tar.gz
+dist
+.env
+
+# Backup files
+*-backup.ts
+*-backup.js
+*.save
+_*-backup.ts

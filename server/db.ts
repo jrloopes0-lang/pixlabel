@@ -1,4 +1,5 @@
 import { drizzle } from "drizzle-orm/neon-http";
+import { neon } from "@neondatabase/serverless";
 import * as schema from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -115,11 +116,21 @@ const createInMemoryDb = () => {
 let db: any;
 
 if (process.env.DATABASE_URL) {
-  db = drizzle(process.env.DATABASE_URL, { schema });
-  console.log("✅ Database connected via Drizzle ORM (Neon HTTP)");
+  try {
+    // Neon serverless driver for Railway/Neon PostgreSQL
+    const sql = neon(process.env.DATABASE_URL);
+    db = drizzle(sql, { schema });
+    console.log("✅ Database connected via Drizzle ORM (Neon Serverless)");
+    console.log(`📊 Database: ${process.env.DATABASE_URL.split('@')[1]?.split('/')[0] || 'configured'}`);
+  } catch (error) {
+    console.error("❌ Database connection failed:", error);
+    console.warn("⚠️ Falling back to in-memory storage for development");
+    db = createInMemoryDb();
+  }
 } else {
   db = createInMemoryDb();
   console.warn("⚠️ DATABASE_URL não configurada. Usando fallback em memória para desenvolvimento.");
+  console.warn("⚠️ Configure DATABASE_URL para persistência de dados.");
 }
 
 export { db };
