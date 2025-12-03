@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/api";
+import { apiRequest, extractData } from "@/lib/api";
 
 interface Medication {
   id: string;
@@ -35,7 +35,10 @@ export function DispenseMedicines({ patient, onSuccess, onBack }: Props) {
   // Query medicamentos disponíveis no SESI
   const { data: availableMeds = [], isLoading: isLoadingMeds } = useQuery({
     queryKey: ["sesi-medicamentos"],
-    queryFn: () => apiRequest("GET", "/api/sesi/medicamentos"),
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/sesi/medicamentos");
+      return extractData(response);
+    },
   });
 
   // Mutation para dispensar

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { apiRequest, queryKeys } from "@/lib/api";
+import { apiRequest, queryKeys, extractData } from "@/lib/api";
 import type { Order } from "@shared/schema";
 
 export function Pedidos() {
@@ -7,7 +7,7 @@ export function Pedidos() {
     queryKey: queryKeys.orders,
     queryFn: async () => {
       const response = await apiRequest("GET", "/api/orders");
-      return response.data as Order[];
+      return extractData(response) as Order[];
     },
   });
 

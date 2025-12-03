@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryKeys } from "@/lib/api";
+import { apiRequest, queryKeys, extractData } from "@/lib/api";
 import { insertItemSchema, type Item } from "@shared/schema";
 import { useState } from "react";
 import { queryClient } from "@/lib/queryClient";
@@ -12,7 +12,7 @@ export function EstoqueGeral() {
     queryKey: queryKeys.items,
     queryFn: async () => {
       const response = await apiRequest("GET", "/api/items");
-      return response.data as Item[];
+      return extractData(response) as Item[];
     },
   });
 
