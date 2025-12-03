@@ -3,9 +3,9 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { AppHeader } from "@/components/AppHeader";
 import { AppSidebar } from "@/components/AppSidebar";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useIsAuthenticated } from "@/hooks/use-auth";
 import Home from "@/pages/Home";
+import Login from "@/pages/Login";
 import { EstoqueGeral } from "@/pages/EstoqueGeral";
 import { Pedidos } from "@/pages/Pedidos";
 import { SESI } from "@/pages/SESI";
@@ -18,11 +18,12 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useIsAuthenticated();
 
   if (isLoading) {
-    return <div className="flex items-center justify-center h-screen">Carregando...</div>;
+    return <div className="flex items-center justify-center h-screen bg-gray-50"><div className="text-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div><p className="text-gray-600">Carregando...</p></div></div>;
   }
 
   if (!isAuthenticated) {
-    return null;  }
+    return <Login />;
+  }
 
   return (
     <div className="flex h-screen bg-gray-100">
