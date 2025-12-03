@@ -13,22 +13,49 @@ export function useAuth() {
     queryKey: queryKeys.auth,
     queryFn: async () => {
       const demoToken = getDemoToken();
+      console.log("[useAuth] Demo token found:", !!demoToken);
+      
+      // Se tiver token de demo, considere autenticado sem chamar API
+      if (demoToken === "demo-pixlabel-test") {
+        console.log("[useAuth] Using demo token - returning hardcoded auth status");
+        return {
+          isAuthenticated: true,
+          user: {
+            id: "demo-user",
+            email: "demo@pixlabel.local",
+            firstName: "Demo",
+            lastName: "User",
+            role: "admin",
+          },
+        };
+      }
+      
       const headers: Record<string, string> = {};
       if (demoToken) {
         headers["x-demo-token"] = demoToken;
       }
       
-      const response = await fetch("/api/auth/status", {
-        credentials: "include",
-        headers,
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Auth status check failed: ${response.statusText}`);
+      try {
+        console.log("[useAuth] Calling /api/auth/status...");
+        const response = await fetch("/api/auth/status", {
+          credentials: "include",
+          headers,
+        });
+        
+        console.log("[useAuth] Response status:", response.status);
+        
+        if (!response.ok) {
+          console.warn("[useAuth] Auth check failed:", response.statusText);
+          throw new Error(`Auth status check failed: ${response.statusText}`);
+        }
+        
+        const json = await response.json();
+        console.log("[useAuth] Auth data received:", json.data);
+        return json.data;
+      } catch (error) {
+        console.error("[useAuth] Error:", error);
+        throw error;
       }
-      
-      const json = await response.json();
-      return json.data;
     },
     retry: 1,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -38,8 +65,11 @@ export function useAuth() {
 export function useIsAuthenticated() {
   const { data: auth, isLoading, isError } = useAuth();
   
+  console.log("[useIsAuthenticated]", { isLoading, isError, hasData: !!auth });
+  
   // Se houver erro na auth, considere como não autenticado (não carregando)
   if (isError) {
+    console.warn("[useIsAuthenticated] Auth error - returning not authenticated");
     return { isAuthenticated: false, isLoading: false, user: undefined };
   }
   
