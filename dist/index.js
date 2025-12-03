@@ -898,19 +898,24 @@ router.post("/sesi/estoque", async (req, res) => {
 router.get("/sesi/medicamentos", async (req, res) => {
   try {
     const search = req.query.q?.toLowerCase() || "";
-    const foundItems = search ? await db.select().from(items).limit(20) : await db.select().from(items).limit(20);
+    const foundItems = await db.select().from(items).limit(100);
     const filtered = search ? foundItems.filter(
-      (item) => item.name.toLowerCase().includes(search) || item.code.toLowerCase().includes(search)
+      (item) => {
+        const name = item.name?.toLowerCase() || "";
+        const code = item.code?.toLowerCase() || "";
+        return name.includes(search) || code.includes(search);
+      }
     ) : foundItems;
     const enriched = await Promise.all(
-      filtered.map(async (item) => {
+      filtered.slice(0, 20).map(async (item) => {
         const stock = await db.select().from(sesiStock).where(eq(sesiStock.itemId, item.id));
-        const sesiQuantity = stock.reduce((sum, s) => sum + s.quantity, 0);
+        const sesiQuantity = stock.reduce((sum, s) => sum + (s.quantity || 0), 0);
         return { ...item, sesiQuantity };
       })
     );
     res.json({ status: "success", data: enriched, total: enriched.length });
   } catch (err) {
+    console.error("\u274C Error in /sesi/medicamentos:", err);
     res.status(500).json({ error: err.message, status: "error" });
   }
 });
