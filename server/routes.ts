@@ -551,6 +551,10 @@ router.post("/sesi/dispensacoes", async (req, res) => {
 
 router.get("/dashboard/executivo", async (_req, res) => {
   try {
+    // Constants for calculations
+    const MOCK_PRICE_MULTIPLIER = 10; // Temporary until real pricing is implemented
+    const DAYS_FOR_RECENT_DISPENSATIONS = 30;
+
     // Get counts and stats from database
     const [
       itemsCount,
@@ -568,28 +572,38 @@ router.get("/dashboard/executivo", async (_req, res) => {
       db.select().from(sesiDispensations).orderBy(desc(sesiDispensations.createdAt)).limit(100)
     ]);
 
-    // Calculate metrics
-    const totalStock = itemsCount.reduce((sum: number, item: any) => sum + (item.currentStock || 0), 0);
-    const totalSesiStock = sesiStockItems.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0);
+    // Calculate total stock (sum of all item quantities)
+    const totalStock = itemsCount.reduce(
+      (sum: number, item: Item) => sum + (item.currentStock || 0),
+      0
+    );
+    
+    // Calculate total SESI stock
+    const totalSesiStock = sesiStockItems.reduce(
+      (sum: number, item: typeof sesiStockItems[0]) => sum + (item.quantity || 0),
+      0
+    );
     
     // Recent dispensations count (last 30 days)
     const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - DAYS_FOR_RECENT_DISPENSATIONS);
     const recentDispensationsCount = recentDispensations.filter(
-      (d: any) => new Date(d.createdAt) >= thirtyDaysAgo
+      (d: typeof recentDispensations[0]) => new Date(d.createdAt) >= thirtyDaysAgo
     ).length;
 
-    // Calculate active suppliers
-    const activeSuppliersCount = suppliersCount.filter((s: any) => s.active !== false).length;
+    // Calculate active suppliers (where active is not explicitly false)
+    const activeSuppliersCount = suppliersCount.filter(
+      (s: typeof suppliersCount[0]) => s.active !== false
+    ).length;
 
-    // Mock some calculated values (TODO: implement real calculations)
+    // Build response with real data
     const stats = {
       cafCentral: {
-        estoqueTotal: totalStock * 10, // Mock value in reais
-        giroMensal: 2.3,
+        estoqueTotal: totalStock * MOCK_PRICE_MULTIPLIER, // TODO: Replace with real pricing from DB
+        giroMensal: 2.3, // TODO: Calculate from historical data
         medicamentos: itemsCount.length,
         fornecedores: activeSuppliersCount,
-        posicaoMes: 12,
+        posicaoMes: 12, // TODO: Calculate actual month-over-month change
       },
       social: {
         pacientesAtendidos: sesiPatientsCount.length,

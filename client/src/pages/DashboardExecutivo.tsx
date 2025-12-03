@@ -7,6 +7,39 @@ import { Package, Users, Settings, TrendingUp, DollarSign, AlertTriangle } from 
 // Dashboard Executivo - The "Big Ball" (CAF Central)
 // Shows overview of all 3 small balls + main metrics
 
+// Constants
+const DASHBOARD_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes in milliseconds
+
+// Default fallback values when API is unavailable
+const DEFAULT_CAF_DATA = {
+  estoqueTotal: 1234567,
+  giroMensal: 2.3,
+  medicamentos: 3847,
+  fornecedores: 23,
+  posicaoMes: 12,
+};
+
+const DEFAULT_SOCIAL_DATA = {
+  pacientesAtendidos: 342,
+  medicamentosDistribuidos: 1847,
+  acoesJudiciais: 18,
+  custoTotal: 45230,
+};
+
+const DEFAULT_ESTRATEGICO_DATA = {
+  programasAtivos: 8,
+  conformidade: 96,
+  taxaAdesao: 87.5,
+  pacientesMonitorados: 5672,
+};
+
+const DEFAULT_GLOBAL_DATA = {
+  fornecedoresAtivos: 23,
+  alertasCriticos: 5,
+  giroTotal: 2.1,
+  medicamentosVencendo: 342,
+};
+
 interface DashboardStats {
   cafCentral: {
     estoqueTotal: number;
@@ -50,7 +83,7 @@ export default function DashboardExecutivo() {
       const response = await apiRequest("GET", "/api/dashboard/executivo");
       return response.json();
     },
-    refetchInterval: 5 * 60 * 1000, // Refresh every 5 minutes
+    refetchInterval: DASHBOARD_REFRESH_INTERVAL,
   });
 
   if (isLoading) {
@@ -61,34 +94,10 @@ export default function DashboardExecutivo() {
     );
   }
 
-  const cafData = stats?.cafCentral || {
-    estoqueTotal: 1234567,
-    giroMensal: 2.3,
-    medicamentos: 3847,
-    fornecedores: 23,
-    posicaoMes: 12,
-  };
-
-  const socialData = stats?.social || {
-    pacientesAtendidos: 342,
-    medicamentosDistribuidos: 1847,
-    acoesJudiciais: 18,
-    custoTotal: 45230,
-  };
-
-  const estrategicoData = stats?.estrategico || {
-    programasAtivos: 8,
-    conformidade: 96,
-    taxaAdesao: 87.5,
-    pacientesMonitorados: 5672,
-  };
-
-  const globalData = stats?.global || {
-    fornecedoresAtivos: 23,
-    alertasCriticos: 5,
-    giroTotal: 2.1,
-    medicamentosVencendo: 342,
-  };
+  const cafData = stats?.cafCentral || DEFAULT_CAF_DATA;
+  const socialData = stats?.social || DEFAULT_SOCIAL_DATA;
+  const estrategicoData = stats?.estrategico || DEFAULT_ESTRATEGICO_DATA;
+  const globalData = stats?.global || DEFAULT_GLOBAL_DATA;
 
   const alertas = stats?.alertas || [
     {
