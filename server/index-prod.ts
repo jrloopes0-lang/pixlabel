@@ -10,7 +10,7 @@ const publicDir = path.join(__dirname, "public");
 app.use(express.static(publicDir));
 app.get("*", (_req, res) => res.sendFile(path.join(publicDir, "index.html")));
 
-const port = process.env.PORT ? Number(process.env.PORT) : 3000;
+const port = process.env.PORT ? Number(process.env.PORT) : 8080;
 app.listen(port, () => {
   console.log(`PIXELLAB production server running on port ${port}`);
 });

@@ -9,6 +9,7 @@
     "build:client": "vite build",
     "build:server": "esbuild server/index-prod.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js",
     "build": "npm run build:client && npm run build:server",
+    "postinstall": "npm run build",
     "start": "NODE_ENV=production node dist/index.js",
     "check": "tsc",
     "verify": "npm run check && npm run test && npm run build",
