@@ -21,6 +21,23 @@ if (process.env.DEBUG_REQUESTS === "true") {
   });
 }
 
+// ============================================
+// DEMO TOKEN MIDDLEWARE
+// ============================================
+app.use((req, _res, next) => {
+  const demoToken = req.headers["x-demo-token"];
+  if (demoToken === "demo-pixlabel-test") {
+    (req as any).user = {
+      id: "demo-user-123",
+      email: "demo@pixlabel.test",
+      firstName: "Demo",
+      lastName: "User",
+      role: "admin" as const,
+    };
+  }
+  next();
+});
+
 // Middleware
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));

@@ -7,6 +7,11 @@ interface FetchOptions {
   headers?: Record<string, string>;
 }
 
+function getDemoToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("x-demo-token");
+}
+
 export async function apiRequest(
   method: HTTPMethod,
   endpoint: string,
@@ -15,13 +20,20 @@ export async function apiRequest(
 ) {
   const url = `${endpoint.startsWith("/") ? "" : "/"}${endpoint}`;
   
+  const demoToken = getDemoToken();
+  const allHeaders: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...headers,
+  };
+  
+  if (demoToken) {
+    allHeaders["x-demo-token"] = demoToken;
+  }
+  
   const options: RequestInit = {
     method,
     credentials: "include", // Include cookies for session
-    headers: {
-      "Content-Type": "application/json",
-      ...headers,
-    },
+    headers: allHeaders,
   };
 
   if (body && (method === "POST" || method === "PATCH" || method === "PUT")) {

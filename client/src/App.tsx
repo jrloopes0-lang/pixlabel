@@ -21,10 +21,12 @@ function Login() {
       const json = await response.json();
       if (json.demoToken) {
         localStorage.setItem("x-demo-token", json.demoToken);
-        window.location.href = "/";
+        // Redirect to dashboard after successful login
+        window.location.href = "/estoque";
       }
     } catch (err) {
       console.error("Demo login failed:", err);
+      alert("Erro ao fazer login de demonstração");
     }
   };
 

@@ -103,6 +103,23 @@ async function startDevServer() {
     done(null, user);
   });
 
+  // ============================================
+  // DEMO TOKEN MIDDLEWARE
+  // ============================================
+  app.use((req, _res, next) => {
+    const demoToken = req.headers["x-demo-token"];
+    if (demoToken === "demo-pixlabel-test") {
+      (req as any).user = {
+        id: "demo-user-123",
+        email: "demo@pixlabel.test",
+        firstName: "Demo",
+        lastName: "User",
+        role: "admin" as const,
+      };
+    }
+    next();
+  });
+
   // Auth routes (public) - BEFORE Vite
   app.use("/auth", authRoutes);
 
