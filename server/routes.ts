@@ -545,4 +545,93 @@ router.post("/sesi/dispensacoes", async (req, res) => {
   }
 });
 
+// ============================================
+// DASHBOARD EXECUTIVO ENDPOINT
+// ============================================
+
+router.get("/dashboard/executivo", async (_req, res) => {
+  try {
+    // Get counts and stats from database
+    const [
+      itemsCount,
+      ordersCount,
+      suppliersCount,
+      sesiPatientsCount,
+      sesiStockItems,
+      recentDispensations
+    ] = await Promise.all([
+      db.select().from(items),
+      db.select().from(orders),
+      db.select().from(suppliers),
+      db.select().from(sesiPatients),
+      db.select().from(sesiStock),
+      db.select().from(sesiDispensations).orderBy(desc(sesiDispensations.createdAt)).limit(100)
+    ]);
+
+    // Calculate metrics
+    const totalStock = itemsCount.reduce((sum: number, item: any) => sum + (item.currentStock || 0), 0);
+    const totalSesiStock = sesiStockItems.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0);
+    
+    // Recent dispensations count (last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const recentDispensationsCount = recentDispensations.filter(
+      (d: any) => new Date(d.createdAt) >= thirtyDaysAgo
+    ).length;
+
+    // Calculate active suppliers
+    const activeSuppliersCount = suppliersCount.filter((s: any) => s.active !== false).length;
+
+    // Mock some calculated values (TODO: implement real calculations)
+    const stats = {
+      cafCentral: {
+        estoqueTotal: totalStock * 10, // Mock value in reais
+        giroMensal: 2.3,
+        medicamentos: itemsCount.length,
+        fornecedores: activeSuppliersCount,
+        posicaoMes: 12,
+      },
+      social: {
+        pacientesAtendidos: sesiPatientsCount.length,
+        medicamentosDistribuidos: recentDispensationsCount,
+        acoesJudiciais: 18, // Mock value
+        custoTotal: 45230, // Mock value
+      },
+      estrategico: {
+        programasAtivos: 8, // Mock value
+        conformidade: 96,
+        taxaAdesao: 87.5,
+        pacientesMonitorados: sesiPatientsCount.length,
+      },
+      global: {
+        fornecedoresAtivos: activeSuppliersCount,
+        alertasCriticos: 5, // Mock value - TODO: implement real alerts
+        giroTotal: 2.1,
+        medicamentosVencendo: 0, // TODO: calculate from expiry dates
+      },
+      alertas: [
+        {
+          id: "1",
+          tipo: "Vencimento",
+          severidade: "critical" as const,
+          descricao: "Verificar medicamentos com vencimento próximo",
+          timestamp: new Date().toISOString(),
+        },
+        {
+          id: "2",
+          tipo: "Estoque",
+          severidade: "warning" as const,
+          descricao: "Itens abaixo do estoque mínimo",
+          timestamp: new Date().toISOString(),
+        },
+      ],
+    };
+
+    res.json(stats);
+  } catch (err: any) {
+    console.error("❌ Dashboard error:", err);
+    res.status(500).json({ error: err.message, status: "error" });
+  }
+});
+
 export default router;
