@@ -1,0 +1,53 @@
+{
+  "caf": {
+    "estoque_total": "R$ 1.234.567",
+    "posicao_mes": "+12%",
+    "giro_mensal": "2.3x"
+  },
+  "programa_social": {
+    "pacientes": 342,
+    "acoes_judiciais": 18,
+    "medicamentos_distribuidos": 1847,
+    "alertas": 2
+  },
+  "componente_estrategico": {
+    "programas_ativos": 8,
+    "conformidade": "96%",
+    "taxa_adesao": "87%",
+    "alertas": 1
+  },
+  "gestao_global": {
+    "fornecedores": 23,
+    "alertas": 5,
+    "giro_total": "2.1x"
+  },
+  "consumo_semanal": [
+    { "nome": "Dipirona 500mg", "unidades": 1243 },
+    { "nome": "Amoxicilina 500mg", "unidades": 987 },
+    { "nome": "Metformina 850mg", "unidades": 654 },
+    { "nome": "Losartana 50mg", "unidades": 543 },
+    { "nome": "Omeprazol 20mg", "unidades": 432 }
+  ],
+  "alertas_criticos": [
+    {
+      "tipo": "critical",
+      "mensagem": "Insulina NPH vence em 30 dias",
+      "medicamento": "Insulina NPH 100UI"
+    },
+    {
+      "tipo": "warning",
+      "mensagem": "Amoxicilina estoque baixo",
+      "medicamento": "Amoxicilina 500mg"
+    },
+    {
+      "tipo": "info",
+      "mensagem": "Fornecedor Medic+ atrasado 2 dias",
+      "medicamento": "Diversos"
+    }
+  ],
+  "financeiro": {
+    "gasto_mes": "R$ 45.230",
+    "orcamento": "R$ 50.000",
+    "margem": "9.5%"
+  }
+}
