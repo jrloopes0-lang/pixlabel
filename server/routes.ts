@@ -67,18 +67,74 @@ router.get("/health", (_req, res) => {
 // AUTH ENDPOINTS
 // ============================================
 
-router.get("/auth/status", async (_req, res) => {
+router.get("/auth/status", async (req, res) => {
   try {
-    // TODO: Get user from session/JWT when auth is implemented
-    // For now, return not authenticated
+    const user = (req as any).user;
+    
+    // Check for demo token (for testing without OAuth)
+    const demoToken = req.headers["x-demo-token"];
+    if (!user && demoToken === "demo-pixlabel-test") {
+      const demoUser = {
+        id: "demo-user-123",
+        email: "demo@pixlabel.test",
+        firstName: "Demo",
+        lastName: "User",
+        role: "admin" as const,
+      };
+      return res.json({
+        status: "success",
+        data: {
+          isAuthenticated: true,
+          user: demoUser,
+        },
+      });
+    }
+
+    if (!user) {
+      return res.json({
+        status: "success",
+        data: {
+          isAuthenticated: false,
+          user: null,
+        },
+      });
+    }
+
     res.json({
+      status: "success",
       data: {
-        isAuthenticated: false,
-        user: null,
+        isAuthenticated: true,
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+        },
       },
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message, status: "error" });
+  }
+});
+
+router.get("/auth/demo-login", async (req: any, res) => {
+  try {
+    res.json({
+      status: "success",
+      message: "Demo login successful",
+      demoToken: "demo-pixlabel-test",
+      user: {
+        id: "demo-user-123",
+        email: "demo@pixlabel.test",
+        firstName: "Demo",
+        lastName: "User",
+        role: "admin",
+      },
+    });
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({ status: "error", error: err.message });
   }
 });
 
