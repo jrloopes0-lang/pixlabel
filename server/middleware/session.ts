@@ -3,8 +3,12 @@ import ConnectPgSimple from "connect-pg-simple";
 import { Pool } from "@neondatabase/serverless";
 
 export function createSessionMiddleware() {
-  if (!process.env.DATABASE_URL) {
-    console.warn("⚠️  DATABASE_URL não configurada. Usando session em-memória (NÃO use em produção)");
+  const databaseUrl = process.env.AIMA_DATABASE_URL ?? process.env.DATABASE_URL;
+
+  if (!databaseUrl) {
+    console.warn(
+      "⚠️  AIMA_DATABASE_URL/DATABASE_URL não configurada. Usando session em-memória (NÃO use em produção)"
+    );
     return session({
       secret: process.env.SESSION_SECRET || "dev-secret-unsafe",
       resave: false,
@@ -18,7 +22,7 @@ export function createSessionMiddleware() {
   }
 
   // Use PostgreSQL session store
-  const pgPool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const pgPool = new Pool({ connectionString: databaseUrl });
   const PostgresqlStore = ConnectPgSimple(session);
 
   return session({

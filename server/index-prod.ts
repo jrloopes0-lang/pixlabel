@@ -13,6 +13,8 @@ const __dirname = path.dirname(__filename);
 // Create Express app
 const app = express();
 
+const databaseUrl = process.env.AIMA_DATABASE_URL ?? process.env.DATABASE_URL;
+
 // Middleware for debugging (log all requests)
 if (process.env.DEBUG_REQUESTS === "true") {
   app.use((req, _res, next) => {
@@ -200,7 +202,7 @@ const server = app.listen(PORT, HOST, () => {
     "Static Files": publicDir,
     "Node Version": process.version,
     "Memory": `${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`,
-    "Database": process.env.DATABASE_URL ? "🔗 Connected" : "💾 In-Memory (Dev Mode)",
+    "Database": databaseUrl ? "🔗 Connected" : "💾 In-Memory (Dev Mode)",
   };
   
   console.log(`
