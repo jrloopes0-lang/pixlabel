@@ -4,21 +4,27 @@ import { useLocation } from "wouter";
 export default function Login() {
   const [, setLocation] = useLocation();
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(null);
 
     try {
+      console.log("[Login] Setting demo token...");
       // Set demo token para bypass da autenticação
       localStorage.setItem("x-demo-token", "demo-pixlabel-test");
       
+      console.log("[Login] Demo token set. Redirecting to /estoque...");
       // Aguarde um pouco para sincronizar com a query
       setTimeout(() => {
+        console.log("[Login] Navigating to /estoque");
         setLocation("/estoque");
       }, 500);
-    } catch (error) {
-      console.error("Login error:", error);
+    } catch (err) {
+      console.error("[Login] Error:", err);
+      setError(err instanceof Error ? err.message : "Erro ao fazer login");
       setIsLoading(false);
     }
   };
@@ -39,6 +45,12 @@ export default function Login() {
         {/* Login Card */}
         <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 shadow-2xl border border-white/20">
           <h2 className="text-2xl font-bold text-white mb-6 text-center">Bem-vindo</h2>
+
+          {error && (
+            <div className="bg-red-500/20 border border-red-400/50 rounded-lg p-4 mb-6">
+              <p className="text-red-200 text-sm">{error}</p>
+            </div>
+          )}
 
           <form onSubmit={handleLogin} className="space-y-6">
             {/* Demo Info */}

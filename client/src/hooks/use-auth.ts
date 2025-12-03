@@ -36,6 +36,12 @@ export function useAuth() {
 }
 
 export function useIsAuthenticated() {
-  const { data: auth, isLoading } = useAuth();
+  const { data: auth, isLoading, isError } = useAuth();
+  
+  // Se houver erro na auth, considere como não autenticado (não carregando)
+  if (isError) {
+    return { isAuthenticated: false, isLoading: false, user: undefined };
+  }
+  
   return { isAuthenticated: auth?.isAuthenticated ?? false, isLoading, user: auth?.user };
 }

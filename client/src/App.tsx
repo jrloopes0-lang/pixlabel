@@ -15,6 +15,7 @@ import { SESIEstoque } from "@/pages/sesi/Estoque";
 function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useIsAuthenticated();
 
+  // Still loading
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50">
@@ -26,10 +27,12 @@ function ProtectedLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // Not authenticated - redirect to login
   if (!isAuthenticated) {
     return <Login />;
   }
 
+  // Authenticated - render protected content
   return <>{children}</>;
 }
 
