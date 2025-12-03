@@ -39,41 +39,17 @@ async function saveOrUpdateUser(user: any) {
 
 /**
  * GET /auth/login
- * Redireciona para Replit OAuth
- * Em desenvolvimento, cria sessão de teste
+ * Redireciona para Replit OAuth ou para página de login
  */
-router.get("/login", async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    // If production OAuth credentials present, use passport to redirect to configured provider
-    const provider = process.env.OAUTH_PROVIDER_NAME || (process.env.OAUTH_CLIENT_ID ? "oauth" : "dev-oauth");
-    if (process.env.OAUTH_CLIENT_ID && process.env.OAUTH_CLIENT_SECRET) {
-      return passport.authenticate(provider)(req, res, next);
-    }
-
-    // Dev fallback: create session user and persist to DB
-    const devUser = {
-      email: "dev@pixlabel.test",
-      firstName: "Dev",
-      lastName: "User",
-      role: "admin" as const,
-    };
-
-    try {
-      const saved = await saveOrUpdateUser(devUser);
-      if (saved && req.session) {
-        (req.session as any).userId = saved.id;
-        (req as any).user = saved;
-      }
-    } catch (dbErr) {
-      console.warn("⚠️ DB error in dev login, continuing with demo token:", dbErr);
-    }
-    
-    // Redireciona para a Home após login de desenvolvimento
-    res.redirect("/");
-  } catch (err: any) {
-    console.error("❌ Auth login error:", err);
-    res.status(500).json({ status: "error", error: "Login failed: " + err.message });
+router.get("/login", (req: Request, res: Response, next: NextFunction) => {
+  // If production OAuth credentials present, use passport to redirect to configured provider
+  const provider = process.env.OAUTH_PROVIDER_NAME || (process.env.OAUTH_CLIENT_ID ? "oauth" : "dev-oauth");
+  if (process.env.OAUTH_CLIENT_ID && process.env.OAUTH_CLIENT_SECRET) {
+    return passport.authenticate(provider)(req, res, next);
   }
+
+  // No OAuth configured - redirect to frontend login page
+  res.redirect("/login");
 });
 
 /**
