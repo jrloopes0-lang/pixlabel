@@ -205,7 +205,7 @@ const server = app.listen(PORT, HOST, () => {
   
   console.log(`
 ╔════════════════════════════════════════════╗
-║  ✅ PIXLABEL Production Server Started    ║
+║  ✅ PixelLab Production Server Started    ║
 ╚════════════════════════════════════════════╝
   `);
   

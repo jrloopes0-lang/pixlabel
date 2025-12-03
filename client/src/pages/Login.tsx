@@ -12,16 +12,21 @@ export default function Login() {
     setError(null);
 
     try {
-      console.log("[Login] Setting demo token...");
+      console.log("[Login] Starting login flow...");
+      
       // Set demo token para bypass da autenticação
       localStorage.setItem("x-demo-token", "demo-pixlabel-test");
+      console.log("[Login] Demo token saved to localStorage");
       
-      console.log("[Login] Demo token set. Redirecting to /estoque...");
-      // Aguarde um pouco para sincronizar com a query
+      // Force a small delay to ensure localStorage is written
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      console.log("[Login] Demo token confirmed. Redirecting to /estoque...");
+      // Use a slightly longer delay to ensure React Query invalidates cache
       setTimeout(() => {
-        console.log("[Login] Navigating to /estoque");
+        console.log("[Login] Attempting navigation to /estoque");
         setLocation("/estoque");
-      }, 500);
+      }, 300);
     } catch (err) {
       console.error("[Login] Error:", err);
       setError(err instanceof Error ? err.message : "Erro ao fazer login");
@@ -36,7 +41,7 @@ export default function Login() {
         <div className="text-center mb-8">
           <h1 className="text-5xl font-bold text-white mb-2">
             <span className="bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
-              PIXLABEL
+              PixelLab
             </span>
           </h1>
           <p className="text-gray-300 text-lg">Gestão Farmacêutica Inteligente</p>

@@ -15,6 +15,8 @@ import { SESIEstoque } from "@/pages/sesi/Estoque";
 function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useIsAuthenticated();
 
+  console.log("[ProtectedLayout] State:", { isAuthenticated, isLoading });
+
   // Still loading
   if (isLoading) {
     return (
@@ -29,72 +31,117 @@ function ProtectedLayout({ children }: { children: React.ReactNode }) {
 
   // Not authenticated - redirect to login
   if (!isAuthenticated) {
+    console.log("[ProtectedLayout] Not authenticated, showing login");
     return <Login />;
   }
 
   // Authenticated - render protected content
+  console.log("[ProtectedLayout] Authenticated, rendering children");
   return <>{children}</>;
 }
 
 export function App() {
+  console.log("[App] Rendering - checking initial auth state");
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
         {/* Redirect OAuth callback to login */}
         <Route path="/auth/login">
-          <Login />
+          {() => {
+            console.log("[Route] /auth/login");
+            return <Login />;
+          }}
         </Route>
 
         {/* Public login route */}
         <Route path="/login">
-          <Login />
+          {() => {
+            console.log("[Route] /login");
+            return <Login />;
+          }}
         </Route>
 
         {/* Home route */}
         <Route path="/">
-          <Home />
+          {() => {
+            console.log("[Route] / (home)");
+            return <Home />;
+          }}
         </Route>
 
         {/* Protected routes */}
         <Route path="/estoque">
-          <ProtectedLayout>
-            <EstoqueGeral />
-          </ProtectedLayout>
+          {() => {
+            console.log("[Route] /estoque (protected)");
+            return (
+              <ProtectedLayout>
+                <EstoqueGeral />
+              </ProtectedLayout>
+            );
+          }}
         </Route>
 
         <Route path="/pedidos">
-          <ProtectedLayout>
-            <Pedidos />
-          </ProtectedLayout>
+          {() => {
+            console.log("[Route] /pedidos (protected)");
+            return (
+              <ProtectedLayout>
+                <Pedidos />
+              </ProtectedLayout>
+            );
+          }}
         </Route>
 
         <Route path="/sesi">
-          <ProtectedLayout>
-            <SESI />
-          </ProtectedLayout>
+          {() => {
+            console.log("[Route] /sesi (protected)");
+            return (
+              <ProtectedLayout>
+                <SESI />
+              </ProtectedLayout>
+            );
+          }}
         </Route>
 
         <Route path="/sesi/pacientes">
-          <ProtectedLayout>
-            <SESIPacientes />
-          </ProtectedLayout>
+          {() => {
+            console.log("[Route] /sesi/pacientes (protected)");
+            return (
+              <ProtectedLayout>
+                <SESIPacientes />
+              </ProtectedLayout>
+            );
+          }}
         </Route>
 
         <Route path="/sesi/dispensar">
-          <ProtectedLayout>
-            <SESIDispensar />
-          </ProtectedLayout>
+          {() => {
+            console.log("[Route] /sesi/dispensar (protected)");
+            return (
+              <ProtectedLayout>
+                <SESIDispensar />
+              </ProtectedLayout>
+            );
+          }}
         </Route>
 
         <Route path="/sesi/estoque">
-          <ProtectedLayout>
-            <SESIEstoque />
-          </ProtectedLayout>
+          {() => {
+            console.log("[Route] /sesi/estoque (protected)");
+            return (
+              <ProtectedLayout>
+                <SESIEstoque />
+              </ProtectedLayout>
+            );
+          }}
         </Route>
 
         {/* Fallback for non-existent routes */}
         <Route path="*">
-          <Home />
+          {() => {
+            console.log("[Route] * (fallback to home)");
+            return <Home />;
+          }}
         </Route>
       </Router>
     </QueryClientProvider>

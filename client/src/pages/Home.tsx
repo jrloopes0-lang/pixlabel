@@ -6,7 +6,7 @@ export default function Home() {
         <div className="text-center mb-16 space-y-6">
           <h1 className="text-6xl md:text-7xl font-bold tracking-tight">
             <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
-              PIXLABEL
+              PixelLab
             </span>
           </h1>
           <p className="text-xl md:text-2xl text-gray-600 font-medium tracking-wide max-w-3xl mx-auto leading-relaxed">
