@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { apiRequest, extractData } from "@/lib/api";
+import { apiRequest } from "@/lib/api";
 
 interface Patient {
   id: string;
@@ -23,10 +23,7 @@ export function SelectPatient({ onSelect, isLoading: isLoadingProp }: Props) {
   // Query todos pacientes
   const { data: allPatients = [], isLoading } = useQuery({
     queryKey: ["sesi-pacientes"],
-    queryFn: async () => {
-      const response = await apiRequest("GET", "/api/sesi/pacientes");
-      return extractData(response);
-    },
+    queryFn: () => apiRequest("GET", "/api/sesi/pacientes"),
   });
 
   // Filtrar em memória (cliente-side)

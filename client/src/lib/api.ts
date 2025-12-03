@@ -51,14 +51,6 @@ export async function apiRequest(
   return response.json();
 }
 
-// Helper: Extract data from API response envelope
-export function extractData<T = any>(response: ApiResponse<T>): T {
-  if (response.status === "error") {
-    throw new Error(response.error || "Unknown error");
-  }
-  return response.data as T;
-}
-
 // Query helpers
 export const queryKeys = {
   auth: ["auth"],
