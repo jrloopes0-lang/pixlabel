@@ -12,6 +12,7 @@ restartPolicyMaxRetries = 3
 
 [deploy.environment]
 HOST = "0.0.0.0"
+AIMA_DATABASE_URL = "${{ Postgres.DATABASE_URL }}"
 
 [healthcheck]
 enabled = true

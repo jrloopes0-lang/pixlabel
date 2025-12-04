@@ -113,13 +113,16 @@ const createInMemoryDb = () => {
 };
 
 let db: any;
+const databaseUrl = process.env.AIMA_DATABASE_URL ?? process.env.DATABASE_URL;
 
-if (process.env.DATABASE_URL) {
-  db = drizzle(process.env.DATABASE_URL, { schema });
+if (databaseUrl) {
+  db = drizzle(databaseUrl, { schema });
   console.log("✅ Database connected via Drizzle ORM (Neon HTTP)");
 } else {
   db = createInMemoryDb();
-  console.warn("⚠️ DATABASE_URL não configurada. Usando fallback em memória para desenvolvimento.");
+  console.warn(
+    "⚠️ AIMA_DATABASE_URL/DATABASE_URL não configurada. Usando fallback em memória para desenvolvimento."
+  );
 }
 
 export { db };
