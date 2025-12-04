@@ -545,4 +545,107 @@ router.post("/sesi/dispensacoes", async (req, res) => {
   }
 });
 
+// ============================================
+// DASHBOARD EXECUTIVO ENDPOINT
+// ============================================
+
+router.get("/dashboard/executivo", async (_req, res) => {
+  try {
+    // Constants for calculations
+    const MOCK_PRICE_MULTIPLIER = 10; // Temporary until real pricing is implemented
+    const DAYS_FOR_RECENT_DISPENSATIONS = 30;
+
+    // Get counts and stats from database
+    const [
+      itemsCount,
+      ordersCount,
+      suppliersCount,
+      sesiPatientsCount,
+      sesiStockItems,
+      recentDispensations
+    ] = await Promise.all([
+      db.select().from(items),
+      db.select().from(orders),
+      db.select().from(suppliers),
+      db.select().from(sesiPatients),
+      db.select().from(sesiStock),
+      db.select().from(sesiDispensations).orderBy(desc(sesiDispensations.createdAt)).limit(100)
+    ]);
+
+    // Calculate total stock (sum of all item quantities)
+    const totalStock = itemsCount.reduce(
+      (sum: number, item: Item) => sum + (item.currentStock || 0),
+      0
+    );
+    
+    // Calculate total SESI stock
+    const totalSesiStock = sesiStockItems.reduce(
+      (sum: number, item: typeof sesiStockItems[0]) => sum + (item.quantity || 0),
+      0
+    );
+    
+    // Recent dispensations count (last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - DAYS_FOR_RECENT_DISPENSATIONS);
+    const recentDispensationsCount = recentDispensations.filter(
+      (d: typeof recentDispensations[0]) => new Date(d.createdAt) >= thirtyDaysAgo
+    ).length;
+
+    // Calculate active suppliers (where active is not explicitly false)
+    const activeSuppliersCount = suppliersCount.filter(
+      (s: typeof suppliersCount[0]) => s.active !== false
+    ).length;
+
+    // Build response with real data
+    const stats = {
+      cafCentral: {
+        estoqueTotal: totalStock * MOCK_PRICE_MULTIPLIER, // TODO: Replace with real pricing from DB
+        giroMensal: 2.3, // TODO: Calculate from historical data
+        medicamentos: itemsCount.length,
+        fornecedores: activeSuppliersCount,
+        posicaoMes: 12, // TODO: Calculate actual month-over-month change
+      },
+      social: {
+        pacientesAtendidos: sesiPatientsCount.length,
+        medicamentosDistribuidos: recentDispensationsCount,
+        acoesJudiciais: 18, // Mock value
+        custoTotal: 45230, // Mock value
+      },
+      estrategico: {
+        programasAtivos: 8, // Mock value
+        conformidade: 96,
+        taxaAdesao: 87.5,
+        pacientesMonitorados: sesiPatientsCount.length,
+      },
+      global: {
+        fornecedoresAtivos: activeSuppliersCount,
+        alertasCriticos: 5, // Mock value - TODO: implement real alerts
+        giroTotal: 2.1,
+        medicamentosVencendo: 0, // TODO: calculate from expiry dates
+      },
+      alertas: [
+        {
+          id: "1",
+          tipo: "Vencimento",
+          severidade: "critical" as const,
+          descricao: "Verificar medicamentos com vencimento próximo",
+          timestamp: new Date().toISOString(),
+        },
+        {
+          id: "2",
+          tipo: "Estoque",
+          severidade: "warning" as const,
+          descricao: "Itens abaixo do estoque mínimo",
+          timestamp: new Date().toISOString(),
+        },
+      ],
+    };
+
+    res.json(stats);
+  } catch (err: any) {
+    console.error("❌ Dashboard error:", err);
+    res.status(500).json({ error: err.message, status: "error" });
+  }
+});
+
 export default router;

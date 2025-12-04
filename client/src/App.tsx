@@ -4,6 +4,7 @@ import { queryClient } from "@/lib/queryClient";
 import { useIsAuthenticated } from "@/hooks/use-auth";
 import Home from "@/pages/Home";
 import Login from "@/pages/Login";
+import DashboardExecutivo from "@/pages/DashboardExecutivo";
 import { EstoqueGeral } from "@/pages/EstoqueGeral";
 import { Pedidos } from "@/pages/Pedidos";
 import { SESI } from "@/pages/SESI";
@@ -67,6 +68,13 @@ export function App() {
             console.log("[Route] / (home)");
             return <Home />;
           }}
+        </Route>
+
+        {/* Dashboard Executivo - The Big Ball */}
+        <Route path="/dashboard">
+          <ProtectedLayout>
+            <DashboardExecutivo />
+          </ProtectedLayout>
         </Route>
 
         {/* Protected routes */}
