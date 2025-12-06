@@ -2,9 +2,24 @@ import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import { existsSync, statSync } from "fs";
+import passport from "passport";
+import { createSessionMiddleware } from "./middleware/session.js";
+import { createOAuthStrategy, createDevStrategy } from "./oauth/provider.js";
+import {
+  helmetMiddleware,
+  apiLimiter,
+  loginLimiter,
+  createLimiter,
+  dispensationLimiter,
+  requestIdMiddleware,
+  securityHeadersMiddleware,
+  sanitizationMiddleware,
+  loggingMiddleware,
+} from "./middleware/security.js";
 
 // Import routes
 import routes from "./routes.js";
+import authRoutes from "./routes/auth.js";
 
 // ESM __dirname setup
 const __filename = fileURLToPath(import.meta.url);
@@ -13,16 +28,77 @@ const __dirname = path.dirname(__filename);
 // Create Express app
 const app = express();
 
-// Middleware for debugging (log all requests)
-if (process.env.DEBUG_REQUESTS === "true") {
-  app.use((req, _res, next) => {
-    console.log(`📨 ${req.method} ${req.path}`);
-    next();
+// ============================================
+// SECURITY MIDDLEWARES (Production)
+// ============================================
+app.use(helmetMiddleware);
+app.use(requestIdMiddleware);
+app.use(securityHeadersMiddleware);
+app.use(loggingMiddleware);
+
+// ============================================
+// BODY PARSERS
+// ============================================
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ limit: "10mb", extended: true }));
+app.use(sanitizationMiddleware);
+
+// ============================================
+// RATE LIMITING (Production only)
+// ============================================
+app.use("/api", apiLimiter);
+app.use("/auth/login", loginLimiter);
+app.use("/api/items", createLimiter);
+app.use("/api/sesi/dispensacoes", dispensationLimiter);
+
+// ============================================
+// SESSION & AUTHENTICATION
+// ============================================
+if (process.env.DATABASE_URL) {
+  app.use(createSessionMiddleware());
+  app.use(passport.initialize());
+  app.use(passport.session());
+  
+  // Configure OAuth strategy
+  if (
+    process.env.OAUTH_CLIENT_ID &&
+    process.env.OAUTH_CLIENT_SECRET &&
+    process.env.OAUTH_CALLBACK_URL &&
+    process.env.OAUTH_AUTH_URL &&
+    process.env.OAUTH_TOKEN_URL
+  ) {
+    const providerName = process.env.OAUTH_PROVIDER_NAME || "oauth";
+    const strategy = createOAuthStrategy(
+      process.env.OAUTH_AUTH_URL,
+      process.env.OAUTH_TOKEN_URL,
+      process.env.OAUTH_USERINFO_URL || "",
+      process.env.OAUTH_CLIENT_ID,
+      process.env.OAUTH_CLIENT_SECRET,
+      process.env.OAUTH_CALLBACK_URL,
+      providerName
+    );
+    passport.use(providerName, strategy as any);
+  }
+
+  passport.serializeUser((user: any, done) => {
+    done(null, user.id);
+  });
+
+  passport.deserializeUser((id: string, done) => {
+    // In production, this should fetch from DB
+    const user = {
+      id,
+      email: `${id}@pixlabel.app`,
+      firstName: "User",
+      lastName: "Name",
+      role: "operator" as const,
+    };
+    done(null, user);
   });
 }
 
 // ============================================
-// DEMO TOKEN MIDDLEWARE
+// DEMO TOKEN MIDDLEWARE (for testing)
 // ============================================
 app.use((req, _res, next) => {
   const demoToken = req.headers["x-demo-token"];
@@ -38,43 +114,8 @@ app.use((req, _res, next) => {
   next();
 });
 
-// Middleware
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ limit: "10mb", extended: true }));
-
-// Health check (early response)
-app.get("/api/health", (_req, res) => {
-  res.json({ 
-    status: "ok", 
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV 
-  });
-});
-
-// Debug endpoint - shows diagnostic info
-app.get("/api/debug", (_req, res) => {
-  const info = {
-    status: "ok",
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV,
-    node_version: process.version,
-    platform: process.platform,
-    uptime: process.uptime(),
-    memory: {
-      heapUsed: `${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`,
-      heapTotal: `${Math.round(process.memoryUsage().heapTotal / 1024 / 1024)}MB`,
-    },
-    directories: {
-      __dirname,
-      cwd: process.cwd(),
-      publicDir,
-      publicDirExists: existsSync(publicDir),
-    },
-    port: process.env.PORT || "3000",
-    host: process.env.HOST || "0.0.0.0",
-  };
-  res.json(info);
-});
+// Auth routes (public)
+app.use("/auth", authRoutes);
 
 // API routes
 app.use("/api", routes);

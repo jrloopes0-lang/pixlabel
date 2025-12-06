@@ -399,31 +399,32 @@ router.get("/sesi/medicamentos", async (req, res) => {
   try {
     const search = (req.query.q as string)?.toLowerCase() || "";
     
-    // Search in items that are in SESI stock
-    const foundItems = search
-      ? await db.select().from(items).limit(20)
-      : await db.select().from(items).limit(20);
+    // Get all items
+    const foundItems = await db.select().from(items).limit(100);
     
-    // Filter by search in-app (easier than Drizzle SQL builders)
+    // Filter by search in-app (safer with in-memory DB)
     const filtered = search
       ? foundItems.filter(
-          (item: typeof foundItems[0]) =>
-            item.name.toLowerCase().includes(search) ||
-            item.code.toLowerCase().includes(search)
+          (item: typeof foundItems[0]) => {
+            const name = item.name?.toLowerCase() || "";
+            const code = item.code?.toLowerCase() || "";
+            return name.includes(search) || code.includes(search);
+          }
         )
       : foundItems;
     
     // Enrich with SESI quantities
     const enriched = await Promise.all(
-      filtered.map(async (item: typeof foundItems[0]) => {
+      filtered.slice(0, 20).map(async (item: typeof foundItems[0]) => {
         const stock = await db.select().from(sesiStock).where(eq(sesiStock.itemId, item.id));
-        const sesiQuantity = stock.reduce((sum: number, s: typeof stock[0]) => sum + s.quantity, 0);
+        const sesiQuantity = stock.reduce((sum: number, s: typeof stock[0]) => sum + (s.quantity || 0), 0);
         return { ...item, sesiQuantity };
       })
     );
     
     res.json({ status: "success", data: enriched, total: enriched.length });
   } catch (err: any) {
+    console.error("❌ Error in /sesi/medicamentos:", err);
     res.status(500).json({ error: err.message, status: "error" });
   }
 });

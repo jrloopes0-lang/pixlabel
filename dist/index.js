@@ -5,13 +5,235 @@ var __export = (target, all) => {
 };
 
 // server/index-prod.ts
-import express2 from "express";
+import express4 from "express";
 import path from "path";
 import { fileURLToPath } from "url";
 import { existsSync, statSync } from "fs";
+import passport2 from "passport";
+
+// server/middleware/session.ts
+import session from "express-session";
+import ConnectPgSimple from "connect-pg-simple";
+import { Pool } from "@neondatabase/serverless";
+function createSessionMiddleware() {
+  if (!process.env.DATABASE_URL) {
+    console.warn("\u26A0\uFE0F  DATABASE_URL n\xE3o configurada. Usando session em-mem\xF3ria (N\xC3O use em produ\xE7\xE3o)");
+    return session({
+      secret: process.env.SESSION_SECRET || "dev-secret-unsafe",
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        secure: process.env.NODE_ENV === "production",
+        httpOnly: true,
+        maxAge: 1e3 * 60 * 60 * 24
+        // 24 horas
+      }
+    });
+  }
+  const pgPool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const PostgresqlStore = ConnectPgSimple(session);
+  return session({
+    store: new PostgresqlStore({ pool: pgPool }),
+    secret: process.env.SESSION_SECRET || "dev-secret",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      httpOnly: true,
+      maxAge: 1e3 * 60 * 60 * 24
+    }
+  });
+}
+
+// server/oauth/provider.ts
+import { Strategy as OAuth2Strategy } from "passport-oauth2";
+import { randomUUID } from "crypto";
+var createOAuthStrategy = (authorizationURL, tokenURL, userInfoURL, clientID, clientSecret, callbackURL, providerName = "oauth") => {
+  const strategy = new OAuth2Strategy(
+    {
+      authorizationURL,
+      tokenURL,
+      clientID,
+      clientSecret,
+      callbackURL,
+      state: true
+    },
+    async (accessToken, refreshToken, _profile, done) => {
+      try {
+        if (!userInfoURL) {
+          const user2 = {
+            id: randomUUID(),
+            email: `${randomUUID()}@${providerName}.oauth`,
+            firstName: providerName,
+            lastName: "User",
+            role: "operator",
+            externalProvider: providerName
+          };
+          return done(null, user2);
+        }
+        const userResponse = await fetch(userInfoURL, {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        if (!userResponse.ok) {
+          throw new Error("Failed to fetch user profile from provider");
+        }
+        const userData = await userResponse.json();
+        const user = {
+          id: userData.id || randomUUID(),
+          email: userData.email || `${userData.username || userData.id}@${providerName}.oauth`,
+          firstName: userData.displayName || userData.username || providerName,
+          lastName: providerName,
+          role: "operator",
+          externalId: userData.id,
+          externalProvider: providerName,
+          accessToken,
+          refreshToken
+        };
+        return done(null, user);
+      } catch (err) {
+        return done(err);
+      }
+    }
+  );
+  strategy.userProfile = async (accessToken, done) => {
+    try {
+      if (!userInfoURL) return done(null, {});
+      const response = await fetch(userInfoURL, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      if (!response.ok) throw new Error("Failed to fetch user profile");
+      const profile = await response.json();
+      done(null, profile);
+    } catch (err) {
+      done(err);
+    }
+  };
+  return strategy;
+};
+
+// server/middleware/security.ts
+import express from "express";
+import rateLimit from "express-rate-limit";
+import helmet from "helmet";
+var corsMiddleware = express.json({ limit: "10mb" });
+var helmetMiddleware = helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      // unsafe-eval needed for Vite HMR
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'", "ws:", "wss:"],
+      // Allow WebSocket for Vite HMR
+      fontSrc: ["'self'", "data:"],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: process.env.NODE_ENV === "production" ? [] : null
+    }
+  },
+  frameguard: { action: "deny" },
+  xssFilter: true,
+  noSniff: true,
+  referrerPolicy: { policy: "strict-origin-when-cross-origin" }
+});
+var apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1e3,
+  // 15 minutes
+  max: 100,
+  message: "Too many requests from this IP, please try again later.",
+  standardHeaders: true,
+  legacyHeaders: false
+});
+var loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1e3,
+  max: 5,
+  skipSuccessfulRequests: false,
+  message: "Too many login attempts, please try again later.",
+  standardHeaders: true,
+  legacyHeaders: false
+});
+var oauthLimiter = rateLimit({
+  windowMs: 5 * 60 * 1e3,
+  max: 10,
+  message: "Too many OAuth attempts, please try again later.",
+  standardHeaders: true,
+  legacyHeaders: false
+});
+var createLimiter = rateLimit({
+  windowMs: 60 * 60 * 1e3,
+  max: 10,
+  message: "Too many items created, please try again later.",
+  standardHeaders: true,
+  legacyHeaders: false
+});
+var dispensationLimiter = rateLimit({
+  windowMs: 60 * 60 * 1e3,
+  max: 50,
+  message: "Too many dispensations, please try again later.",
+  standardHeaders: true,
+  legacyHeaders: false
+});
+var requestIdMiddleware = (req, res, next) => {
+  const requestId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  req.id = requestId;
+  res.setHeader("X-Request-ID", requestId);
+  next();
+};
+var securityHeadersMiddleware = (req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader(
+    "Permissions-Policy",
+    "geolocation=(), microphone=(), camera=(), payment=()"
+  );
+  next();
+};
+var sanitizationMiddleware = (req, res, next) => {
+  const sanitize = (value) => {
+    if (typeof value === "string") {
+      return value.replace(/[<>]/g, "").replace(/javascript:/gi, "").trim();
+    }
+    if (typeof value === "object" && value !== null) {
+      return Object.keys(value).reduce((acc, key) => {
+        acc[key] = sanitize(value[key]);
+        return acc;
+      }, Array.isArray(value) ? [] : {});
+    }
+    return value;
+  };
+  if (req.body) {
+    req.body = sanitize(req.body);
+  }
+  next();
+};
+var loggingMiddleware = (req, res, next) => {
+  const start = Date.now();
+  const requestId = req.id;
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    const log = {
+      requestId,
+      method: req.method,
+      path: req.path,
+      status: res.statusCode,
+      duration: `${duration}ms`,
+      ip: req.ip,
+      userId: req.user?.id,
+      timestamp: (/* @__PURE__ */ new Date()).toISOString()
+    };
+    if (res.statusCode >= 400) {
+      console.error("[ERROR]", log);
+    } else {
+      console.log("[INFO]", log);
+    }
+  });
+  next();
+};
 
 // server/routes.ts
-import express from "express";
+import express2 from "express";
 import { eq, desc } from "drizzle-orm";
 
 // shared/schema.ts
@@ -304,7 +526,8 @@ var insertAuditLogSchema = z.object({
 
 // server/db.ts
 import { drizzle } from "drizzle-orm/neon-http";
-import { randomUUID } from "crypto";
+import { neon } from "@neondatabase/serverless";
+import { randomUUID as randomUUID2 } from "crypto";
 var getTableName = (table) => {
   return table?.name || table?.$name || table?.__name || (table && typeof table === "string" ? table : String(table)) || "unknown";
 };
@@ -371,7 +594,7 @@ var createInMemoryDb = () => {
       values: (data) => {
         const name = getTableName(table);
         const tbl = ensureTable(name);
-        const id = data.id || randomUUID();
+        const id = data.id || randomUUID2();
         const now = /* @__PURE__ */ new Date();
         const saved = { id, ...data, createdAt: data.createdAt || now, updatedAt: data.updatedAt || now };
         tbl.set(id, saved);
@@ -400,15 +623,24 @@ var createInMemoryDb = () => {
 };
 var db;
 if (process.env.DATABASE_URL) {
-  db = drizzle(process.env.DATABASE_URL, { schema: schema_exports });
-  console.log("\u2705 Database connected via Drizzle ORM (Neon HTTP)");
+  try {
+    const sql = neon(process.env.DATABASE_URL);
+    db = drizzle(sql, { schema: schema_exports });
+    console.log("\u2705 Database connected via Drizzle ORM (Neon Serverless)");
+    console.log(`\u{1F4CA} Database: ${process.env.DATABASE_URL.split("@")[1]?.split("/")[0] || "configured"}`);
+  } catch (error) {
+    console.error("\u274C Database connection failed:", error);
+    console.warn("\u26A0\uFE0F Falling back to in-memory storage for development");
+    db = createInMemoryDb();
+  }
 } else {
   db = createInMemoryDb();
   console.warn("\u26A0\uFE0F DATABASE_URL n\xE3o configurada. Usando fallback em mem\xF3ria para desenvolvimento.");
+  console.warn("\u26A0\uFE0F Configure DATABASE_URL para persist\xEAncia de dados.");
 }
 
 // server/routes.ts
-var router = express.Router();
+var router = express2.Router();
 async function logAudit(userId, action, entityType, entityId, changes, ipAddress) {
   if (!userId) return;
   try {
@@ -666,19 +898,24 @@ router.post("/sesi/estoque", async (req, res) => {
 router.get("/sesi/medicamentos", async (req, res) => {
   try {
     const search = req.query.q?.toLowerCase() || "";
-    const foundItems = search ? await db.select().from(items).limit(20) : await db.select().from(items).limit(20);
+    const foundItems = await db.select().from(items).limit(100);
     const filtered = search ? foundItems.filter(
-      (item) => item.name.toLowerCase().includes(search) || item.code.toLowerCase().includes(search)
+      (item) => {
+        const name = item.name?.toLowerCase() || "";
+        const code = item.code?.toLowerCase() || "";
+        return name.includes(search) || code.includes(search);
+      }
     ) : foundItems;
     const enriched = await Promise.all(
-      filtered.map(async (item) => {
+      filtered.slice(0, 20).map(async (item) => {
         const stock = await db.select().from(sesiStock).where(eq(sesiStock.itemId, item.id));
-        const sesiQuantity = stock.reduce((sum, s) => sum + s.quantity, 0);
+        const sesiQuantity = stock.reduce((sum, s) => sum + (s.quantity || 0), 0);
         return { ...item, sesiQuantity };
       })
     );
     res.json({ status: "success", data: enriched, total: enriched.length });
   } catch (err) {
+    console.error("\u274C Error in /sesi/medicamentos:", err);
     res.status(500).json({ error: err.message, status: "error" });
   }
 });
@@ -764,14 +1001,251 @@ router.post("/sesi/dispensacoes", async (req, res) => {
 });
 var routes_default = router;
 
+// server/routes/auth.ts
+import express3 from "express";
+import passport from "passport";
+import { eq as eq2 } from "drizzle-orm";
+var router2 = express3.Router();
+async function saveOrUpdateUser(user) {
+  try {
+    if (!user?.email) return null;
+    const found = await db.select().from(users).where(eq2(users.email, user.email));
+    if (found.length > 0) {
+      const existing = found[0];
+      await db.update(users).set({
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role || existing.role
+      }).where(eq2(users.email, user.email));
+      const refreshed = await db.select().from(users).where(eq2(users.email, user.email));
+      return refreshed[0];
+    } else {
+      await db.insert(users).values({
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role || "operator"
+      });
+      const created = await db.select().from(users).where(eq2(users.email, user.email));
+      return created[0] || null;
+    }
+  } catch (err) {
+    console.error("Error saving user:", err);
+    return null;
+  }
+}
+router2.get("/login", (req, res, next) => {
+  const provider = process.env.OAUTH_PROVIDER_NAME || (process.env.OAUTH_CLIENT_ID ? "oauth" : "dev-oauth");
+  if (process.env.OAUTH_CLIENT_ID && process.env.OAUTH_CLIENT_SECRET) {
+    return passport.authenticate(provider)(req, res, next);
+  }
+  res.redirect("/login");
+});
+router2.get(
+  "/callback",
+  passport.authenticate("replit", { failureRedirect: "/" }),
+  async (req, res) => {
+    try {
+      const oauthUser = req.user;
+      if (!oauthUser) {
+        return res.status(400).json({ status: "error", error: "No user returned from provider" });
+      }
+      const saved = await saveOrUpdateUser(oauthUser);
+      if (saved && req.session) {
+        req.session.userId = saved.id;
+        req.user = saved;
+      }
+      try {
+        if (saved) {
+          await db.insert(auditLogs).values({
+            userId: saved.id,
+            action: "login",
+            entityType: "user",
+            entityId: saved.id,
+            changes: JSON.stringify({ method: process.env.OAUTH_PROVIDER_NAME || "oauth" }),
+            ipAddress: req.ip || "unknown",
+            createdAt: /* @__PURE__ */ new Date()
+          });
+        }
+      } catch (err) {
+        console.error("Failed to write audit log:", err);
+      }
+      if ((req.headers.accept || "").includes("text/html")) {
+        return res.redirect("/");
+      }
+      res.json({ status: "success", message: "OAuth callback processed", user: saved });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ status: "error", error: err.message });
+    }
+  }
+);
+router2.get("/logout", async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (userId) {
+      await db.insert(auditLogs).values({
+        userId,
+        action: "logout",
+        entityType: "user",
+        entityId: userId,
+        changes: JSON.stringify({}),
+        ipAddress: req.ip || "unknown",
+        createdAt: /* @__PURE__ */ new Date()
+      });
+    }
+    if (req.logout) {
+      req.logout((err) => {
+        if (err) {
+          return res.status(500).json({ error: err.message });
+        }
+        if (req.session) {
+          req.session.destroy((err2) => {
+            if (err2) {
+              return res.status(500).json({ error: err2.message });
+            }
+            res.json({ status: "success", message: "Logged out" });
+          });
+        } else {
+          res.json({ status: "success", message: "Logged out" });
+        }
+      });
+    } else {
+      if (req.session) {
+        req.session.destroy((err) => {
+          if (err) {
+            return res.status(500).json({ error: err.message });
+          }
+          res.json({ status: "success", message: "Logged out" });
+        });
+      } else {
+        res.json({ status: "success", message: "Logged out" });
+      }
+    }
+  } catch (err) {
+    res.status(500).json({ status: "error", error: err.message });
+  }
+});
+router2.get("/status", async (req, res) => {
+  try {
+    const user = req.user;
+    const demoToken = req.headers["x-demo-token"];
+    if (!user && demoToken === "demo-pixlabel-test") {
+      const demoUser = {
+        id: "demo-user-123",
+        email: "demo@pixlabel.test",
+        firstName: "Demo",
+        lastName: "User",
+        role: "admin"
+      };
+      return res.json({
+        status: "success",
+        data: {
+          isAuthenticated: true,
+          user: demoUser
+        }
+      });
+    }
+    if (!user) {
+      return res.json({
+        status: "success",
+        data: {
+          isAuthenticated: false,
+          user: null
+        }
+      });
+    }
+    res.json({
+      status: "success",
+      data: {
+        isAuthenticated: true,
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role
+        }
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ status: "error", error: err.message });
+  }
+});
+router2.get("/demo-login", async (req, res) => {
+  if (process.env.NODE_ENV === "production" && !process.env.ALLOW_DEMO_LOGIN) {
+    return res.status(403).json({ status: "error", error: "Demo login not allowed" });
+  }
+  try {
+    const demoUser = {
+      email: "demo@pixlabel.test",
+      firstName: "Demo",
+      lastName: "User",
+      role: "admin"
+    };
+    const saved = await saveOrUpdateUser(demoUser);
+    if (saved && req.session) {
+      req.session.userId = saved.id;
+      req.user = saved;
+    }
+    res.setHeader("X-Demo-Token", "demo-pixlabel-test");
+    res.json({
+      status: "success",
+      message: "Demo login successful",
+      user: saved,
+      demoToken: "demo-pixlabel-test"
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ status: "error", error: err.message });
+  }
+});
+var auth_default = router2;
+
 // server/index-prod.ts
 var __filename = fileURLToPath(import.meta.url);
 var __dirname = path.dirname(__filename);
-var app = express2();
-if (process.env.DEBUG_REQUESTS === "true") {
-  app.use((req, _res, next) => {
-    console.log(`\u{1F4E8} ${req.method} ${req.path}`);
-    next();
+var app = express4();
+app.use(helmetMiddleware);
+app.use(requestIdMiddleware);
+app.use(securityHeadersMiddleware);
+app.use(loggingMiddleware);
+app.use(express4.json({ limit: "10mb" }));
+app.use(express4.urlencoded({ limit: "10mb", extended: true }));
+app.use(sanitizationMiddleware);
+app.use("/api", apiLimiter);
+app.use("/auth/login", loginLimiter);
+app.use("/api/items", createLimiter);
+app.use("/api/sesi/dispensacoes", dispensationLimiter);
+if (process.env.DATABASE_URL) {
+  app.use(createSessionMiddleware());
+  app.use(passport2.initialize());
+  app.use(passport2.session());
+  if (process.env.OAUTH_CLIENT_ID && process.env.OAUTH_CLIENT_SECRET && process.env.OAUTH_CALLBACK_URL && process.env.OAUTH_AUTH_URL && process.env.OAUTH_TOKEN_URL) {
+    const providerName = process.env.OAUTH_PROVIDER_NAME || "oauth";
+    const strategy = createOAuthStrategy(
+      process.env.OAUTH_AUTH_URL,
+      process.env.OAUTH_TOKEN_URL,
+      process.env.OAUTH_USERINFO_URL || "",
+      process.env.OAUTH_CLIENT_ID,
+      process.env.OAUTH_CLIENT_SECRET,
+      process.env.OAUTH_CALLBACK_URL,
+      providerName
+    );
+    passport2.use(providerName, strategy);
+  }
+  passport2.serializeUser((user, done) => {
+    done(null, user.id);
+  });
+  passport2.deserializeUser((id, done) => {
+    const user = {
+      id,
+      email: `${id}@pixlabel.app`,
+      firstName: "User",
+      lastName: "Name",
+      role: "operator"
+    };
+    done(null, user);
   });
 }
 app.use((req, _res, next) => {
@@ -787,38 +1261,7 @@ app.use((req, _res, next) => {
   }
   next();
 });
-app.use(express2.json({ limit: "10mb" }));
-app.use(express2.urlencoded({ limit: "10mb", extended: true }));
-app.get("/api/health", (_req, res) => {
-  res.json({
-    status: "ok",
-    timestamp: (/* @__PURE__ */ new Date()).toISOString(),
-    environment: process.env.NODE_ENV
-  });
-});
-app.get("/api/debug", (_req, res) => {
-  const info = {
-    status: "ok",
-    timestamp: (/* @__PURE__ */ new Date()).toISOString(),
-    environment: process.env.NODE_ENV,
-    node_version: process.version,
-    platform: process.platform,
-    uptime: process.uptime(),
-    memory: {
-      heapUsed: `${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`,
-      heapTotal: `${Math.round(process.memoryUsage().heapTotal / 1024 / 1024)}MB`
-    },
-    directories: {
-      __dirname,
-      cwd: process.cwd(),
-      publicDir,
-      publicDirExists: existsSync(publicDir)
-    },
-    port: process.env.PORT || "3000",
-    host: process.env.HOST || "0.0.0.0"
-  };
-  res.json(info);
-});
+app.use("/auth", auth_default);
 app.use("/api", routes_default);
 var publicDir = (() => {
   const possiblePaths = [
@@ -847,7 +1290,7 @@ var publicDir = (() => {
   console.warn(`\u26A0\uFE0F Public directory not found, using default: ${possiblePaths[2]}`);
   return possiblePaths[2];
 })();
-app.use(express2.static(publicDir, {
+app.use(express4.static(publicDir, {
   maxAge: "1h",
   etag: false,
   extensions: ["html", "js", "css", "json"]

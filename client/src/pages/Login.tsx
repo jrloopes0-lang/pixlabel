@@ -22,10 +22,14 @@ export default function Login() {
       await new Promise(resolve => setTimeout(resolve, 100));
       
       console.log("[Login] Demo token confirmed. Redirecting to /estoque...");
+      
+      // Force React Query to refetch auth status
+      window.dispatchEvent(new Event('storage'));
+      
       // Use a slightly longer delay to ensure React Query invalidates cache
       setTimeout(() => {
         console.log("[Login] Attempting navigation to /estoque");
-        setLocation("/estoque");
+        window.location.href = "/estoque"; // Use full page navigation to ensure auth state is fresh
       }, 300);
     } catch (err) {
       console.error("[Login] Error:", err);
