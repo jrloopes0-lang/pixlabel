@@ -226,9 +226,11 @@ npm run check            # Run TypeScript compiler (should be 0 errors)
 # Build
 npm run build            # Build for production (dist/)
 
-# Database (when DB configured)
+# Database
 npm run db:push          # Apply migrations to PostgreSQL
-npm run db:studio        # Open Drizzle Studio
+npm run db:reset         # Reset database (DROP all tables + recreate)
+npm run db:seed          # Populate with sample data
+npm run db:reiniciar     # Reset + Seed (complete restart)
 
 # Production
 npm start                # Start production server (NODE_ENV=production)
@@ -287,6 +289,39 @@ PERPLEXITY_API_KEY=xxx           # For AI features
 
 ---
 
+## 🔄 Reiniciar o Sistema
+
+PIXLABEL oferece comandos para reiniciar/resetar o sistema durante desenvolvimento:
+
+### Reset Completo (Limpar + Recriar)
+```bash
+npm run db:reset
+# Remove todas tabelas e recria estrutura
+# ⚠️ ATENÇÃO: Todos os dados serão perdidos!
+```
+
+### Carregar Dados Iniciais
+```bash
+npm run db:seed
+# Popula banco com dados de exemplo:
+# • 2 usuários (admin, operador)
+# • 4 unidades de saúde
+# • 3 fornecedores
+# • 8 medicamentos
+# • 3 pacientes SESI
+# • Estoque SESI inicial
+```
+
+### Reinício Total (Reset + Seed)
+```bash
+npm run db:reiniciar
+# Combo: limpa tudo e recria com dados novos
+```
+
+📖 **Documentação completa**: [docs/RESET_SISTEMA.md](./docs/RESET_SISTEMA.md)
+
+---
+
 ## 🐛 Troubleshooting
 
 ### Dev server não inicia
@@ -310,6 +345,12 @@ npm run check
 - Verificar DATABASE_URL está correto
 - Testar conexão: `psql $DATABASE_URL`
 - Neon console: https://console.neon.tech
+
+### Precisa resetar o banco?
+```bash
+# Limpar tudo e começar do zero
+npm run db:reiniciar
+```
 
 ### React Router não funciona
 - Verificar wouter em App.tsx
